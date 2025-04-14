@@ -2,8 +2,8 @@ import { GameRoom } from "@/types/game";
 import { Item } from "@/types/inventory";
 import { generateId } from "@/utils/game";
 
-// Временное хранилище предметов
-import { ITEMS_DATA } from "./itemsData";
+// Импортируем ITEMS вместо ITEMS_DATA
+import { ITEMS, getItemById } from "./itemsData";
 
 export class GameService {
   // Имитация получения комнат с сервера
@@ -63,8 +63,9 @@ export class GameService {
   
   // Имитация получения предмета по ID
   static getItemById(itemId: string): Item | null {
-    // Ищем предмет в нашем временном хранилище
-    const item = ITEMS_DATA.find(item => item.id === itemId);
+    // Используем функцию getItemById из itemsData, если она доступна, 
+    // иначе ищем предмет сами
+    const item = getItemById ? getItemById(itemId) : ITEMS.find(item => item.id === itemId);
     return item || null;
   }
 }
