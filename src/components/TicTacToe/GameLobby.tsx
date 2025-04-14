@@ -12,7 +12,7 @@ import { AlertCircle, Bot } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const GameLobby: React.FC = () => {
-  const { availableRooms, createRoom, joinRoom, spectateRoom, isBotsEnabled } = useGame();
+  const { availableRooms, createRoom, joinRoom, spectateRoom } = useGame();
   const { user } = useAuth();
   const { inventory } = useInventory();
   
@@ -30,9 +30,6 @@ const GameLobby: React.FC = () => {
   const userInGame = availableRooms.some(room => 
     room.players.some(player => player.username === user?.username)
   );
-  
-  // Проверяем, включены ли боты
-  const botsEnabled = isBotsEnabled ? isBotsEnabled() : true;
   
   // Обработчик создания новой комнаты
   const handleCreateRoom = () => {
@@ -99,16 +96,6 @@ const GameLobby: React.FC = () => {
                   )}
                 </>
               )}
-              
-              {!botsEnabled && (
-                <Alert className="mt-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-                  <Bot className="h-4 w-4 text-blue-500" />
-                  <AlertDescription className="text-blue-700 dark:text-blue-300">
-                    Внимание: автоматические боты отключены администратором. 
-                    Если второй игрок не присоединится, вам нужно будет закрыть комнату вручную.
-                  </AlertDescription>
-                </Alert>
-              )}
             </CardContent>
             <CardFooter className="flex justify-between">
               <Button variant="outline" onClick={() => {
@@ -151,15 +138,6 @@ const GameLobby: React.FC = () => {
             <AlertCircle className="h-4 w-4 text-amber-500" />
             <AlertDescription className="text-amber-700 dark:text-amber-300">
               У вас нет предметов в инвентаре. Пополните инвентарь, чтобы создать игру.
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        {!botsEnabled && !showCreateSelector && (
-          <Alert className="mt-4 max-w-md mx-auto bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-            <Bot className="h-4 w-4 text-blue-500" />
-            <AlertDescription className="text-blue-700 dark:text-blue-300">
-              Автоматические боты сейчас отключены. Для игры потребуется второй игрок.
             </AlertDescription>
           </Alert>
         )}
@@ -223,9 +201,6 @@ const GameLobby: React.FC = () => {
                             ?
                           </span>
                           <span className="ml-2">Ожидание второго игрока...</span>
-                          {!botsEnabled && (
-                            <span className="ml-2 text-xs text-blue-500">(боты отключены)</span>
-                          )}
                         </li>
                       )}
                     </ul>
