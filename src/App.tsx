@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "./components/ui/toaster";
 import { ThemeProvider } from "./components/ui/theme-provider";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Header from "./components/Header";
 
 // Pages
 import Index from "./pages/Index";
@@ -12,10 +13,12 @@ import TicTacToe from "./pages/TicTacToe";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
+import InventoryPage from "./pages/InventoryPage";
 
 function App() {
   return (
     <ThemeProvider defaultTheme="light" storageKey="theme">
+      <Header />
       <Toaster />
       <Routes>
         <Route path="/" element={<Index />} />
@@ -48,6 +51,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/inventory"
+          element={
+            <ProtectedRoute>
+              <InventoryPage />
             </ProtectedRoute>
           }
         />

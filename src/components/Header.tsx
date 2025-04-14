@@ -42,7 +42,7 @@ const Header: React.FC = () => {
             </Link>
             {isAuthenticated && (
               <>
-                <Link to="/game" className="text-sm font-medium text-ocean-600 dark:text-ocean-200 hover:text-ocean-800 dark:hover:text-ocean-50 transition-colors flex items-center">
+                <Link to="/tic-tac-toe" className="text-sm font-medium text-ocean-600 dark:text-ocean-200 hover:text-ocean-800 dark:hover:text-ocean-50 transition-colors flex items-center">
                   <UnderwaterIcon emoji="🎮" className="text-sm mr-1" delay={1} />
                   Играть
                 </Link>
