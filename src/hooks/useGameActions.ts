@@ -359,13 +359,36 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
     
     // Если следующий ход - бота, запускаем его автоматически с небольшой задержкой
     if (updatedRoom.status === "playing" && nextPlayer?.isBot) {
+      console.log("Следующий ход бота, запускаем с задержкой...");
+      
       setTimeout(() => {
-        // Проверяем, что комната всё ещё существует и ход бота
+        // Получаем актуальное состояние комнаты
         const currentRoomState = getRoomById(updatedRoom.id);
-        if (currentRoomState && currentRoomState.status === "playing" && 
+        
+        if (!currentRoomState) {
+          console.log("Комната не найдена");
+          return;
+        }
+        
+        console.log("Начинаем ход бота. Текущее состояние:", {
+          roomStatus: currentRoomState.status,
+          currentTurn: currentRoomState.currentTurn,
+          botId: nextPlayer.id,
+          isBotTurn: currentRoomState.currentTurn === nextPlayer.id
+        });
+        
+        if (currentRoomState.status === "playing" && 
             currentRoomState.currentTurn === nextPlayer.id) {
+          
           // Делаем ход ботом
+          console.log("Вызываем makeBotMove");
           const botUpdatedRoom = BotService.makeBotMove(currentRoomState);
+          
+          console.log("Результат хода бота:", {
+            board: botUpdatedRoom.board,
+            status: botUpdatedRoom.status,
+            currentTurn: botUpdatedRoom.currentTurn
+          });
           
           // Обновляем список комнат
           setAvailableRooms(prev => 
@@ -373,20 +396,24 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
           );
           
           // Если это наша текущая комната, обновляем состояние
-          if (currentRoom && currentRoom.id === botUpdatedRoom.id) {
-            setCurrentRoom(botUpdatedRoom);
-            
-            // Если бот выиграл, обрабатываем ставки
-            if (botUpdatedRoom.status === "finished" && botUpdatedRoom.winner === BotService.BOT_NAME) {
-              // Бот забирает все предметы :)
-              console.log("Бот выиграл и забрал все ставки!");
+          setCurrentRoom(prev => {
+            if (prev && prev.id === botUpdatedRoom.id) {
+              return botUpdatedRoom;
             }
+            return prev;
+          });
+          
+          // Если бот выиграл, обрабатываем ставки
+          if (botUpdatedRoom.status === "finished" && botUpdatedRoom.winner === BotService.BOT_NAME) {
+            console.log("Бот выиграл и забрал все ставки!");
           }
+        } else {
+          console.log("Не удалось выполнить ход бота: некорректное состояние");
         }
-      }, 1000); // Задержка 1 секунда, чтобы игрок успел увидеть свой ход
+      }, 1000); // Задержка 1 секунда
     }
     
-  }, [currentRoom, isSpectating, user, addItem, getRoomById]);
+  }, [currentRoom, isSpectating, user, addItem, getRoomById, setAvailableRooms]);
 
   return {
     availableRooms,

@@ -108,26 +108,49 @@ export const findBestMove = (
   botSymbol: string,
   playerSymbol: string
 ): number | null => {
+  console.log("findBestMove вызван с параметрами:", {
+    board,
+    botSymbol,
+    playerSymbol
+  });
+  
   // Проверяем наличие выигрышного хода
   const winningMove = findWinningMove(board, botSymbol);
-  if (winningMove !== null) return winningMove;
+  if (winningMove !== null) {
+    console.log("Найден выигрышный ход:", winningMove);
+    return winningMove;
+  }
   
   // Проверяем наличие блокирующего хода
   const blockingMove = findBlockingMove(board, playerSymbol, botSymbol);
-  if (blockingMove !== null) return blockingMove;
+  if (blockingMove !== null) {
+    console.log("Найден блокирующий ход:", blockingMove);
+    return blockingMove;
+  }
   
   // Пробуем занять центр
   const centerMove = findCenterMove(board);
-  if (centerMove !== null) return centerMove;
+  if (centerMove !== null) {
+    console.log("Выбран центральный ход:", centerMove);
+    return centerMove;
+  }
   
   // Пробуем занять угол
   const cornerMove = findCornerMove(board);
-  if (cornerMove !== null) return cornerMove;
+  if (cornerMove !== null) {
+    console.log("Выбран угловой ход:", cornerMove);
+    return cornerMove;
+  }
   
   // Пробуем занять сторону
   const sideMove = findSideMove(board);
-  if (sideMove !== null) return sideMove;
+  if (sideMove !== null) {
+    console.log("Выбран ход на стороне:", sideMove);
+    return sideMove;
+  }
   
   // Если ничего не подошло, делаем случайный ход
-  return findRandomMove(board);
+  const randomMove = findRandomMove(board);
+  console.log("Выбран случайный ход:", randomMove);
+  return randomMove;
 };

@@ -1,6 +1,6 @@
 import { GameRoom, Player } from "@/types/game";
 import { findBestMove } from "@/utils/botLogic";
-import { generateId } from "@/utils/game";
+import { calculateWinner, generateId } from "@/utils/game";
 import { GameService } from "./gameService";
 
 export class BotService {
@@ -43,11 +43,17 @@ export class BotService {
     // Создаем ID для бота
     const botId = generateId();
     
+    // Находим первого игрока для определения его символа
+    const firstPlayer = room.players[0];
+    
+    // Выбираем символ для бота, противоположный символу первого игрока
+    const botSymbol = firstPlayer.symbol === "Х" ? "О" : "Х";
+    
     // Создаем бота как игрока
     const botPlayer: Player = {
       id: botId,
       username: this.BOT_NAME,
-      symbol: this.BOT_SYMBOL,
+      symbol: botSymbol,
       stakeItemId: this.BOT_STAKE_ITEM_ID,
       isBot: true // Помечаем, что это бот
     };
@@ -73,11 +79,27 @@ export class BotService {
   static makeBotMove(room: GameRoom): GameRoom {
     // Проверяем, что сейчас ход бота
     const botPlayer = room.players.find(player => player.isBot);
-    if (!botPlayer || room.currentTurn !== botPlayer.id) return room;
+    if (!botPlayer || room.currentTurn !== botPlayer.id) {
+      console.log("Не ход бота или бот не найден", { 
+        botFound: !!botPlayer, 
+        currentTurn: room.currentTurn, 
+        botId: botPlayer?.id 
+      });
+      return room;
+    }
     
     // Находим игрока-человека
     const humanPlayer = room.players.find(player => !player.isBot);
-    if (!humanPlayer) return room;
+    if (!humanPlayer) {
+      console.log("Человек-игрок не найден");
+      return room;
+    }
+    
+    console.log("Бот делает ход", { 
+      board: room.board,
+      botSymbol: botPlayer.symbol,
+      humanSymbol: humanPlayer.symbol
+    });
     
     // Находим лучший ход для бота
     const botMove = findBestMove(
@@ -87,14 +109,19 @@ export class BotService {
     );
     
     // Если бот не может сделать ход, возвращаем комнату без изменений
-    if (botMove === null) return room;
+    if (botMove === null) {
+      console.log("Бот не может сделать ход");
+      return room;
+    }
+    
+    console.log("Бот выбрал ход:", botMove);
     
     // Обновляем доску
     const newBoard = [...room.board];
     newBoard[botMove] = botPlayer.symbol;
     
     // Проверяем, есть ли победитель
-    const winner = this.checkWinner(newBoard);
+    const winner = calculateWinner(newBoard);
     
     // Проверяем, заполнена ли доска
     const isBoardFull = newBoard.every(cell => cell !== null);
@@ -109,30 +136,13 @@ export class BotService {
       lastActivity: Date.now()
     };
     
-    return updatedRoom;
-  }
-  
-  /**
-   * Проверяет, есть ли победитель (упрощенная версия calculateWinner)
-   */
-  private static checkWinner(board: (string | null)[]): string | null {
-    const lines = [
-      [0, 1, 2],
-      [3, 4, 5],
-      [6, 7, 8],
-      [0, 3, 6],
-      [1, 4, 7],
-      [2, 5, 8],
-      [0, 4, 8],
-      [2, 4, 6]
-    ];
+    console.log("Обновленная комната после хода бота:", {
+      board: updatedRoom.board,
+      currentTurn: updatedRoom.currentTurn,
+      status: updatedRoom.status,
+      winner: updatedRoom.winner
+    });
     
-    for (let i = 0; i < lines.length; i++) {
-      const [a, b, c] = lines[i];
-      if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-        return board[a];
-      }
-    }
-    return null;
+    return updatedRoom;
   }
 }
