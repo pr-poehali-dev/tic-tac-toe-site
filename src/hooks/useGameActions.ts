@@ -1,7 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { GameRoom, Player } from "@/types/game";
 import { calculateWinner, generateId, generateRoomCode, createInitialBoard, isBoardFull } from "@/utils/game";
 import { GameService } from "@/services/gameService";
+import { BotService } from "@/services/botService";
 import { User } from "@/types/auth";
 import { useInventory } from "@/context/InventoryContext";
 
@@ -92,16 +93,63 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
       lastActivity: Date.now(),
       stakes: {
         [playerId]: stakeItemId
-      }
+      },
+      botCheckScheduled: false // Флаг для отслеживания, запланирована ли проверка на добавление бота
     };
     
     // В реальном приложении здесь был бы вызов API
     // GameService.createRoom(newRoom).then(...)
     
-    setAvailableRooms(prev => [...prev, newRoom]);
-    setCurrentRoom(newRoom);
+    // Запланируем проверку добавления бота через 1 минуту
+    const updatedRoom = { ...newRoom, botCheckScheduled: true };
+    
+    setAvailableRooms(prev => [...prev, updatedRoom]);
+    setCurrentRoom(updatedRoom);
     setIsSpectating(false);
   }, [user, availableRooms, getItem, removeItem]);
+
+  /**
+   * Проверяет все комнаты, ожидающие подключения, 
+   * и добавляет бота, если ожидание длится больше минуты
+   */
+  const checkRoomsForBot = useCallback(() => {
+    const updatedRooms = [...availableRooms];
+    let hasChanges = false;
+    
+    updatedRooms.forEach((room, index) => {
+      // Если комната ожидает игрока и прошла минута
+      if (BotService.shouldAddBot(room)) {
+        console.log(`Добавляем бота в комнату ${room.id}`);
+        
+        // Обновляем комнату, добавляя бота
+        updatedRooms[index] = BotService.addBotToRoom(room);
+        
+        // Если текущая комната была обновлена, обновляем и ее
+        if (currentRoom && currentRoom.id === room.id) {
+          setCurrentRoom(updatedRooms[index]);
+        }
+        
+        hasChanges = true;
+      }
+    });
+    
+    if (hasChanges) {
+      setAvailableRooms(updatedRooms);
+    }
+  }, [availableRooms, currentRoom]);
+  
+  /**
+   * Эффект для проверки и автоматического добавления бота в комнаты, 
+   * которые ожидают игрока слишком долго
+   */
+  useEffect(() => {
+    // Проверяем каждые 5 секунд, не нужно ли добавить бота
+    const botCheckInterval = setInterval(() => {
+      checkRoomsForBot();
+    }, 5000);
+    
+    return () => clearInterval(botCheckInterval);
+  }, [checkRoomsForBot]);
 
   /**
    * Присоединяется к существующей комнате
@@ -217,8 +265,11 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
       }
     }
     
-    // Если игрок был один, удаляем комнату
-    if (currentRoom.players.length === 1) {
+    // Если игрок был один или с ботом, удаляем комнату
+    const hasOnlyBotOrSinglePlayer = currentRoom.players.length === 1 || 
+      (currentRoom.players.length === 2 && currentRoom.players.some(p => p.isBot));
+      
+    if (hasOnlyBotOrSinglePlayer) {
       // В реальном приложении здесь был бы вызов API
       // GameService.deleteRoom(currentRoom.id).then(...)
       
@@ -277,13 +328,13 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
     // Определяем следующего игрока
     const nextPlayer = currentRoom.players.find(p => p.id !== currentPlayer.id);
     
-    // Обновляем комнату
-    const updatedRoom = {
+    // Формируем обновленную комнату
+    let updatedRoom = {
       ...currentRoom,
       board: newBoard,
       currentTurn: nextPlayer ? nextPlayer.id : currentPlayer.id,
       status: winner || boardFull ? "finished" : "playing",
-      winner: winner ? currentPlayer.username : null,
+      winner: winner ? (winner === currentPlayer.symbol ? currentPlayer.username : (nextPlayer ? nextPlayer.username : null)) : null,
       lastActivity: Date.now()
     };
     
@@ -298,15 +349,44 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
       });
     }
     
-    // В реальном приложении здесь был бы вызов API
-    // GameService.updateRoom(updatedRoom).then(...)
-    
+    // Обновляем доступные комнаты
     setAvailableRooms(prev => 
       prev.map(r => r.id === currentRoom.id ? updatedRoom : r)
     );
     
+    // Обновляем текущую комнату
     setCurrentRoom(updatedRoom);
-  }, [currentRoom, isSpectating, user, addItem]);
+    
+    // Если следующий ход - бота, запускаем его автоматически с небольшой задержкой
+    if (updatedRoom.status === "playing" && nextPlayer?.isBot) {
+      setTimeout(() => {
+        // Проверяем, что комната всё ещё существует и ход бота
+        const currentRoomState = getRoomById(updatedRoom.id);
+        if (currentRoomState && currentRoomState.status === "playing" && 
+            currentRoomState.currentTurn === nextPlayer.id) {
+          // Делаем ход ботом
+          const botUpdatedRoom = BotService.makeBotMove(currentRoomState);
+          
+          // Обновляем список комнат
+          setAvailableRooms(prev => 
+            prev.map(r => r.id === botUpdatedRoom.id ? botUpdatedRoom : r)
+          );
+          
+          // Если это наша текущая комната, обновляем состояние
+          if (currentRoom && currentRoom.id === botUpdatedRoom.id) {
+            setCurrentRoom(botUpdatedRoom);
+            
+            // Если бот выиграл, обрабатываем ставки
+            if (botUpdatedRoom.status === "finished" && botUpdatedRoom.winner === BotService.BOT_NAME) {
+              // Бот забирает все предметы :)
+              console.log("Бот выиграл и забрал все ставки!");
+            }
+          }
+        }
+      }, 1000); // Задержка 1 секунда, чтобы игрок успел увидеть свой ход
+    }
+    
+  }, [currentRoom, isSpectating, user, addItem, getRoomById]);
 
   return {
     availableRooms,

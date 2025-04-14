@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from "@/context/AuthContext";
 import { formatDistanceToNow } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Copy } from "lucide-react";
+import { Copy, Robot } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import Board from "./Board";
 
@@ -94,10 +94,13 @@ const GameRoom: React.FC = () => {
           <div className="flex justify-between mb-4">
             <div>
               {currentRoom.players[0] && (
-                <div>
+                <div className="flex items-center">
                   <p className="font-medium">{currentRoom.players[0].username} ({currentRoom.players[0].symbol})</p>
+                  {currentRoom.players[0].isBot && (
+                    <Robot className="ml-1 h-4 w-4 text-blue-500" title="Бот" />
+                  )}
                   {currentRoom.status === "playing" && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground ml-2">
                       {currentRoom.currentTurn === currentRoom.players[0].id ? "Сейчас ходит" : ""}
                     </p>
                   )}
@@ -107,16 +110,24 @@ const GameRoom: React.FC = () => {
             
             <div className="text-right">
               {currentRoom.players[1] ? (
-                <div>
-                  <p className="font-medium">{currentRoom.players[1].username} ({currentRoom.players[1].symbol})</p>
+                <div className="flex items-center justify-end">
                   {currentRoom.status === "playing" && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground mr-2">
                       {currentRoom.currentTurn === currentRoom.players[1].id ? "Сейчас ходит" : ""}
                     </p>
                   )}
+                  <p className="font-medium">{currentRoom.players[1].username} ({currentRoom.players[1].symbol})</p>
+                  {currentRoom.players[1].isBot && (
+                    <Robot className="ml-1 h-4 w-4 text-blue-500" title="Бот" />
+                  )}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Ожидание второго игрока...</p>
+                <div className="flex items-center justify-end">
+                  <p className="text-sm text-muted-foreground">Ожидание второго игрока...</p>
+                  <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 px-2 py-0.5 rounded-full">
+                    Бот подключится через 1 минуту
+                  </span>
+                </div>
               )}
             </div>
           </div>
@@ -147,6 +158,12 @@ const GameRoom: React.FC = () => {
           <div className="text-sm text-muted-foreground">
             <p>ID комнаты: {currentRoom.id}</p>
             <p>Последняя активность: {formatDistanceToNow(currentRoom.lastActivity, { addSuffix: true, locale: ru })}</p>
+            {currentRoom.players.some(p => p.isBot) && (
+              <p className="mt-2 text-blue-500 flex items-center">
+                <Robot className="mr-1 h-4 w-4" /> 
+                В этой комнате играет бот
+              </p>
+            )}
           </div>
         </CardContent>
         

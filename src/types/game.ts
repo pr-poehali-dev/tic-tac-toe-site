@@ -1,29 +1,42 @@
-// Типы для игры крестики-нолики
 import { Item } from "./inventory";
 
+/**
+ * Интерфейс для игрока в игре
+ */
 export interface Player {
   id: string;
   username: string;
-  symbol: "Х" | "О";
-  stakeItemId?: string; // ID предмета, поставленного на кон
+  symbol: string;
+  stakeItemId: string;
+  isBot?: boolean; // Флаг, указывающий, что это бот
 }
 
-export interface GameRoom {
-  id: string;
-  roomCode: string; // Уникальный код комнаты
-  creatorId: string; // ID создателя комнаты
-  players: Player[];
-  currentTurn: string; // id текущего игрока
-  status: "waiting" | "playing" | "finished";
-  winner: string | null;
-  board: Array<string | null>;
-  createdAt: number;
-  lastActivity: number;
-  stakes: { [playerId: string]: string }; // Карта ставок: ключ - ID игрока, значение - ID предмета
-}
-
+/**
+ * Статус игровой комнаты
+ */
 export type GameStatus = "waiting" | "playing" | "finished";
 
+/**
+ * Интерфейс для игровой комнаты
+ */
+export interface GameRoom {
+  id: string;
+  roomCode: string;
+  creatorId: string;
+  players: Player[];
+  currentTurn: string;
+  status: GameStatus;
+  winner: string | null;
+  board: (string | null)[];
+  createdAt: number;
+  lastActivity: number;
+  stakes: { [playerId: string]: string }; // Маппинг ID игрока на ID предмета ставки
+  botCheckScheduled?: boolean; // Флаг, указывающий, что запланирована проверка бота
+}
+
+/**
+ * Интерфейс для контекста игры
+ */
 export interface GameContextType {
   availableRooms: GameRoom[];
   currentRoom: GameRoom | null;
@@ -33,7 +46,7 @@ export interface GameContextType {
   makeMove: (index: number) => void;
   getRoomById: (roomId: string) => GameRoom | undefined;
   spectateRoom: (roomId: string) => void;
-  isWaiting: boolean;
-  isPlaying: boolean;
+  isWaiting?: boolean;
+  isPlaying?: boolean;
   isSpectating: boolean;
 }
