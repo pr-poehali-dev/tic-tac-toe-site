@@ -1,54 +1,65 @@
-import { Item } from "./inventory";
+export interface Item {
+  id: string;
+  name: string;
+  description: string;
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  imgSrc: string;
+  price: number;
+  category: 'weapon' | 'armor' | 'potion' | 'resource' | 'accessory';
+  stats?: {
+    [key: string]: number;
+  };
+}
 
-/**
- * Интерфейс для игрока в игре
- */
+export interface InventoryItem {
+  item: Item;
+  quantity: number;
+}
+
+export interface Inventory {
+  id: string;
+  userId: string;
+  items: InventoryItem[];
+  gold: number;
+  maxSlots: number;
+}
+
 export interface Player {
   id: string;
   username: string;
-  symbol: string;
+  symbol: string; // X или O
   stakeItemId: string;
-  isBot?: boolean; // Флаг, указывающий, что это бот
+  isBot?: boolean;
 }
 
-/**
- * Статус игровой комнаты
- */
-export type GameStatus = "waiting" | "playing" | "finished";
-
-/**
- * Интерфейс для игровой комнаты
- */
 export interface GameRoom {
   id: string;
   roomCode: string;
   creatorId: string;
   players: Player[];
-  currentTurn: string;
-  status: GameStatus;
-  winner: string | null;
-  board: (string | null)[];
-  createdAt: number;
-  lastActivity: number;
-  stakes: { [playerId: string]: string }; // Маппинг ID игрока на ID предмета ставки
-  botCheckScheduled?: boolean; // Флаг, указывающий, что запланирована проверка бота
+  currentTurn: string; // ID игрока, чей сейчас ход
+  status: 'waiting' | 'playing' | 'finished';
+  winner: string | null; // Имя победителя или null
+  board: (string | null)[]; // Игровое поле
+  createdAt: number; // timestamp
+  lastActivity: number; // timestamp последнего действия
+  stakes: { [playerId: string]: string }; // Ставки игроков (itemId)
+  botCheckScheduled: boolean; // Запланирована ли проверка для добавления бота
 }
 
-/**
- * Интерфейс для контекста игры
- */
 export interface GameContextType {
   availableRooms: GameRoom[];
   currentRoom: GameRoom | null;
-  joinRoom: (roomId: string, stakeItemId: string) => void;
   createRoom: (stakeItemId: string) => void;
+  joinRoom: (roomId: string, stakeItemId: string) => void;
   leaveRoom: () => void;
   makeMove: (index: number) => void;
-  getRoomById: (roomId: string) => GameRoom | undefined;
   spectateRoom: (roomId: string) => void;
-  isWaiting?: boolean;
-  isPlaying?: boolean;
+  getRoomById: (roomId: string) => GameRoom | undefined;
+  isWaiting: boolean;
+  isPlaying: boolean;
   isSpectating: boolean;
-  toggleBots?: (enabled: boolean) => void;
-  isBotsEnabled?: () => boolean;
+  toggleBots: (enabled: boolean) => void;
+  isBotsEnabled: () => boolean;
+  refreshRooms: () => Promise<void>;
 }

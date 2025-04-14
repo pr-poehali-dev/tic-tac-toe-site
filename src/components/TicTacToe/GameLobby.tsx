@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/GameContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
@@ -8,11 +8,11 @@ import { useInventory } from "@/context/InventoryContext";
 import { ItemSelector } from "@/components/Inventory/ItemSelector";
 import { ItemDetails } from "@/components/Inventory/ItemDetails";
 import UnderwaterIcon from "@/components/UnderwaterIcon";
-import { AlertCircle, Bot } from "lucide-react";
+import { AlertCircle, Bot, RefreshCcw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const GameLobby: React.FC = () => {
-  const { availableRooms, createRoom, joinRoom, spectateRoom } = useGame();
+  const { availableRooms, createRoom, joinRoom, spectateRoom, refreshRooms } = useGame();
   const { user } = useAuth();
   const { inventory } = useInventory();
   
@@ -20,6 +20,7 @@ const GameLobby: React.FC = () => {
   const [showCreateSelector, setShowCreateSelector] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Получаем выбранный предмет из инвентаря
   const selectedItem = selectedItemId 
@@ -58,6 +59,28 @@ const GameLobby: React.FC = () => {
       }
     }
   };
+
+  // Обработчик обновления списка комнат
+  const handleRefreshRooms = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshRooms();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+  
+  // Автоматически обновляем список комнат при входе в лобби
+  useEffect(() => {
+    handleRefreshRooms();
+    
+    // Устанавливаем интервал обновления
+    const interval = setInterval(() => {
+      handleRefreshRooms();
+    }, 10000); // Обновление каждые 10 секунд
+    
+    return () => clearInterval(interval);
+  }, []);
   
   // Проверяем, есть ли предметы в инвентаре
   const hasItems = inventory?.items.length ? inventory.items.length > 0 : false;
@@ -144,10 +167,23 @@ const GameLobby: React.FC = () => {
       </div>
       
       <div>
-        <h2 className="text-xl font-semibold mb-4 flex items-center">
-          <UnderwaterIcon emoji="🦑" className="mr-2" />
-          Доступные подводные комнаты
-        </h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold flex items-center">
+            <UnderwaterIcon emoji="🦑" className="mr-2" />
+            Доступные подводные комнаты
+          </h2>
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleRefreshRooms} 
+            disabled={isRefreshing}
+            className="text-ocean-600 dark:text-ocean-300 hover:text-ocean-700 dark:hover:text-ocean-200"
+          >
+            <RefreshCcw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Обновить
+          </Button>
+        </div>
         
         {joinError && (
           <Alert variant="destructive" className="mb-4">

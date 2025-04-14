@@ -19,6 +19,7 @@ interface GameActionsReturn {
   makeMove: (index: number) => void;
   spectateRoom: (roomId: string) => void;
   getRoomById: (roomId: string) => GameRoom | undefined;
+  refreshRooms: () => Promise<void>;
 }
 
 /**
@@ -29,6 +30,26 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
   const [currentRoom, setCurrentRoom] = useState<GameRoom | null>(null);
   const [isSpectating, setIsSpectating] = useState<boolean>(false);
   const { removeItem, addItem, getItem } = useInventory();
+
+  /**
+   * Обновляет список доступных комнат
+   */
+  const refreshRooms = useCallback(async () => {
+    try {
+      const rooms = await GameService.fetchRooms();
+      setAvailableRooms(rooms);
+      
+      // Если у нас есть текущая комната, нужно обновить и её
+      if (currentRoom) {
+        const updatedCurrentRoom = rooms.find(room => room.id === currentRoom.id);
+        if (updatedCurrentRoom) {
+          setCurrentRoom(updatedCurrentRoom);
+        }
+      }
+    } catch (error) {
+      console.error("Ошибка при обновлении комнат:", error);
+    }
+  }, [currentRoom]);
 
   /**
    * Находит комнату по ID или коду
@@ -42,7 +63,7 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
   /**
    * Создает новую игровую комнату
    */
-  const createRoom = useCallback((stakeItemId: string) => {
+  const createRoom = useCallback(async (stakeItemId: string) => {
     if (!user) return;
     
     // Проверяем, не состоит ли уже пользователь в какой-либо комнате
@@ -99,38 +120,53 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
     // Запланируем проверку добавления бота через 1 минуту
     const updatedRoom = { ...newRoom, botCheckScheduled: true };
     
-    setAvailableRooms(prev => [...prev, updatedRoom]);
-    setCurrentRoom(updatedRoom);
-    setIsSpectating(false);
-  }, [user, availableRooms, getItem, removeItem]);
+    // Сохраняем комнату на "сервере"
+    try {
+      await GameService.saveRoom(updatedRoom);
+      await refreshRooms(); // Обновляем список комнат
+      
+      // Находим созданную комнату в обновленном списке
+      const createdRoom = getRoomById(roomId);
+      if (createdRoom) {
+        setCurrentRoom(createdRoom);
+        setIsSpectating(false);
+      }
+    } catch (error) {
+      console.error("Ошибка при создании комнаты:", error);
+      // Возвращаем предмет в инвентарь при ошибке
+      if (stakeItem) {
+        addItem(stakeItem.item);
+      }
+    }
+  }, [user, availableRooms, getItem, removeItem, addItem, getRoomById, refreshRooms]);
 
   /**
    * Проверяет комнаты на необходимость добавления бота
    */
-  const checkRoomsForBot = useCallback(() => {
+  const checkRoomsForBot = useCallback(async () => {
     const updatedRooms = [...availableRooms];
     let hasChanges = false;
     
-    updatedRooms.forEach((room, index) => {
+    for (let i = 0; i < updatedRooms.length; i++) {
+      const room = updatedRooms[i];
+      
       // Если комната ожидает игрока и прошла минута
       if (BotService.shouldAddBot(room)) {
         console.log(`Добавляем бота в комнату ${room.id}`);
         
         // Обновляем комнату, добавляя бота
-        updatedRooms[index] = BotService.addBotToRoom(room);
+        updatedRooms[i] = BotService.addBotToRoom(room);
         hasChanges = true;
         
-        // Если текущая комната была обновлена, обновляем и ее
-        if (currentRoom && currentRoom.id === room.id) {
-          setCurrentRoom(updatedRooms[index]);
-        }
+        // Сохраняем изменённую комнату на "сервере"
+        await GameService.saveRoom(updatedRooms[i]);
       }
-    });
+    }
     
     if (hasChanges) {
-      setAvailableRooms(updatedRooms);
+      await refreshRooms(); // Обновляем список комнат из "сервера"
     }
-  }, [availableRooms, currentRoom]);
+  }, [availableRooms, refreshRooms]);
   
   /**
    * Эффект для проверки и автоматического добавления бота в комнаты
@@ -147,7 +183,7 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
   /**
    * Присоединяется к существующей комнате
    */
-  const joinRoom = useCallback((roomId: string, stakeItemId: string) => {
+  const joinRoom = useCallback(async (roomId: string, stakeItemId: string) => {
     if (!user) return;
     
     // Находим комнату по ID
@@ -213,31 +249,46 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
       }
     };
     
-    setAvailableRooms(prev => 
-      prev.map(r => r.id === room.id ? updatedRoom : r)
-    );
-    
-    setCurrentRoom(updatedRoom);
-    setIsSpectating(false);
-  }, [user, availableRooms, getRoomById, getItem, removeItem]);
+    try {
+      // Сохраняем обновленную комнату на "сервере"
+      await GameService.saveRoom(updatedRoom);
+      await refreshRooms(); // Обновляем список комнат
+      
+      // Находим присоединенную комнату в обновленном списке
+      const joinedRoom = getRoomById(roomId);
+      if (joinedRoom) {
+        setCurrentRoom(joinedRoom);
+        setIsSpectating(false);
+      }
+    } catch (error) {
+      console.error("Ошибка при присоединении к комнате:", error);
+      // Возвращаем предмет в инвентарь при ошибке
+      if (stakeItem) {
+        addItem(stakeItem.item);
+      }
+    }
+  }, [user, availableRooms, getRoomById, getItem, removeItem, addItem, refreshRooms]);
 
   /**
    * Позволяет администратору наблюдать за игрой
    */
-  const spectateRoom = useCallback((roomId: string) => {
+  const spectateRoom = useCallback(async (roomId: string) => {
     if (!user || user.role !== 'admin') return;
+    
+    // Обновляем список комнат перед наблюдением
+    await refreshRooms();
     
     const room = getRoomById(roomId);
     if (!room) return;
     
     setCurrentRoom(room);
     setIsSpectating(true);
-  }, [getRoomById, user]);
+  }, [getRoomById, user, refreshRooms]);
 
   /**
    * Выходит из текущей комнаты
    */
-  const leaveRoom = useCallback(() => {
+  const leaveRoom = useCallback(async () => {
     if (!currentRoom) return;
 
     // Если администратор наблюдает, просто выходим из режима наблюдения
@@ -280,37 +331,44 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
     const hasOnlyBotOrSinglePlayer = currentRoom.players.length === 1 || 
       (currentRoom.players.length === 2 && currentRoom.players.some(p => p.isBot));
       
-    if (hasOnlyBotOrSinglePlayer) {
-      setAvailableRooms(prev => prev.filter(r => r.id !== currentRoom.id));
-    } else {
-      // Если в комнате был еще игрок, обновляем статус на "waiting"
-      const updatedRoom = {
-        ...currentRoom,
-        players: currentRoom.players.filter(p => p.username !== user.username),
-        status: "waiting",
-        lastActivity: Date.now()
-      };
-      
-      // Удаляем ставку игрока из комнаты
-      if (player && player.id in updatedRoom.stakes) {
-        const newStakes = {...updatedRoom.stakes};
-        delete newStakes[player.id];
-        updatedRoom.stakes = newStakes;
+    try {
+      if (hasOnlyBotOrSinglePlayer) {
+        // Удаляем комнату с "сервера"
+        await GameService.deleteRoom(currentRoom.id);
+      } else {
+        // Если в комнате был еще игрок, обновляем статус на "waiting"
+        const updatedRoom = {
+          ...currentRoom,
+          players: currentRoom.players.filter(p => p.username !== user.username),
+          status: "waiting",
+          lastActivity: Date.now()
+        };
+        
+        // Удаляем ставку игрока из комнаты
+        if (player && player.id in updatedRoom.stakes) {
+          const newStakes = {...updatedRoom.stakes};
+          delete newStakes[player.id];
+          updatedRoom.stakes = newStakes;
+        }
+        
+        // Сохраняем обновленную комнату на "сервере"
+        await GameService.saveRoom(updatedRoom);
       }
       
-      setAvailableRooms(prev => 
-        prev.map(r => r.id === currentRoom.id ? updatedRoom : r)
-      );
+      // Обновляем список комнат
+      await refreshRooms();
+      
+      setCurrentRoom(null);
+      setIsSpectating(false);
+    } catch (error) {
+      console.error("Ошибка при выходе из комнаты:", error);
     }
-    
-    setCurrentRoom(null);
-    setIsSpectating(false);
-  }, [currentRoom, isSpectating, user, addItem]);
+  }, [currentRoom, isSpectating, user, addItem, refreshRooms]);
 
   /**
    * Запускает ход бота с небольшой задержкой
    */
-  const triggerBotMove = useCallback((roomToUpdate: GameRoom) => {
+  const triggerBotMove = useCallback(async (roomToUpdate: GameRoom) => {
     console.log("Запускаем ход бота с задержкой...");
     
     // Находим бота среди игроков
@@ -320,41 +378,40 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
       return;
     }
     
-    setTimeout(() => {
-      // Получаем актуальное состояние комнаты
-      const updatedRoom = BotService.makeBotMove(roomToUpdate);
-      
-      // Обновляем состояние только если ход бота был успешным
-      if (updatedRoom !== roomToUpdate) {
-        console.log("Ход бота выполнен, обновляем состояние");
+    setTimeout(async () => {
+      try {
+        // Получаем актуальное состояние комнаты с "сервера"
+        const rooms = await GameService.fetchRooms();
+        const freshRoom = rooms.find(r => r.id === roomToUpdate.id);
         
-        // Обновляем список доступных комнат
-        setAvailableRooms(prev => 
-          prev.map(r => r.id === updatedRoom.id ? updatedRoom : r)
-        );
-        
-        // Обновляем текущую комнату если нужно
-        setCurrentRoom(prev => {
-          if (prev && prev.id === updatedRoom.id) {
-            return updatedRoom;
-          }
-          return prev;
-        });
-        
-        // Если игра закончилась и бот победил, удаляем предмет игрока из инвентаря
-        // Это дополнительная проверка на случай, если игрок не выйдет из комнаты
-        if (updatedRoom.status === "finished" && updatedRoom.winner === botPlayer.username && user) {
-          console.log("Бот победил! Предмет игрока сгорает.");
-          // Ничего делать не нужно, т.к. предмет уже удален из инвентаря при создании ставки
+        if (!freshRoom) {
+          console.log("Комната была удалена");
+          return;
         }
+        
+        // Делаем ход ботом
+        const updatedRoom = BotService.makeBotMove(freshRoom);
+        
+        // Обновляем состояние только если ход бота был успешным
+        if (updatedRoom !== freshRoom) {
+          console.log("Ход бота выполнен, обновляем состояние");
+          
+          // Сохраняем обновленную комнату на "сервере"
+          await GameService.saveRoom(updatedRoom);
+          
+          // Обновляем список комнат
+          await refreshRooms();
+        }
+      } catch (error) {
+        console.error("Ошибка при ходе бота:", error);
       }
     }, 500); // Задержка для естественности
-  }, [user]);
+  }, [refreshRooms]);
 
   /**
    * Делает ход в игре
    */
-  const makeMove = useCallback((index: number) => {
+  const makeMove = useCallback(async (index: number) => {
     if (!currentRoom || !user || currentRoom.status !== "playing" || isSpectating) return;
     
     // Проверяем, что клетка пуста
@@ -392,62 +449,78 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
       lastActivity: Date.now()
     };
     
-    // Если игра завершена и пользователь победил, возвращаем его предмет
-    if (updatedRoom.status === "finished" && updatedRoom.winner === user.username) {
-      console.log("Игрок победил! Возвращаем его предмет и забираем предмет соперника (если это не бот)");
+    try {
+      // Сохраняем обновленную комнату на "сервере"
+      await GameService.saveRoom(updatedRoom);
       
-      // Возвращаем предмет игрока
-      const playerStakeItemId = updatedRoom.stakes[currentPlayer.id];
-      if (playerStakeItemId) {
-        const playerItem = GameService.getItemById(playerStakeItemId);
-        if (playerItem) {
-          console.log("Возвращаем предмет игрока:", playerItem.name);
-          addItem(playerItem);
+      // Если игра завершена и пользователь победил, возвращаем его предмет
+      if (updatedRoom.status === "finished" && updatedRoom.winner === user.username) {
+        console.log("Игрок победил! Возвращаем его предмет и забираем предмет соперника (если это не бот)");
+        
+        // Возвращаем предмет игрока
+        const playerStakeItemId = updatedRoom.stakes[currentPlayer.id];
+        if (playerStakeItemId) {
+          const playerItem = GameService.getItemById(playerStakeItemId);
+          if (playerItem) {
+            console.log("Возвращаем предмет игрока:", playerItem.name);
+            addItem(playerItem);
+          }
         }
+        
+        // Если противник не бот, забираем его предмет
+        if (nextPlayer && !nextPlayer.isBot) {
+          const opponentStakeItemId = updatedRoom.stakes[nextPlayer.id];
+          if (opponentStakeItemId) {
+            const opponentItem = GameService.getItemById(opponentStakeItemId);
+            if (opponentItem) {
+              console.log("Забираем предмет соперника:", opponentItem.name);
+              addItem(opponentItem);
+            }
+          }
+        }
+      } 
+      // Если игра завершена и бот победил, предмет игрока сгорает (ничего не делаем)
+      else if (updatedRoom.status === "finished" && nextPlayer?.isBot && updatedRoom.winner === nextPlayer.username) {
+        console.log("Бот победил! Предмет игрока сгорает.");
+        // Ничего делать не нужно, т.к. предмет уже удален из инвентаря при создании ставки
       }
-      
-      // Если противник не бот, забираем его предмет
-      if (nextPlayer && !nextPlayer.isBot) {
-        const opponentStakeItemId = updatedRoom.stakes[nextPlayer.id];
-        if (opponentStakeItemId) {
-          const opponentItem = GameService.getItemById(opponentStakeItemId);
-          if (opponentItem) {
-            console.log("Забираем предмет соперника:", opponentItem.name);
-            addItem(opponentItem);
+      // Ничья - возвращаем предмет игрока
+      else if (updatedRoom.status === "finished" && !updatedRoom.winner) {
+        console.log("Ничья! Возвращаем предмет игрока");
+        const playerStakeItemId = updatedRoom.stakes[currentPlayer.id];
+        if (playerStakeItemId) {
+          const playerItem = GameService.getItemById(playerStakeItemId);
+          if (playerItem) {
+            addItem(playerItem);
           }
         }
       }
-    } 
-    // Если игра завершена и бот победил, предмет игрока сгорает (ничего не делаем)
-    else if (updatedRoom.status === "finished" && nextPlayer?.isBot && updatedRoom.winner === nextPlayer.username) {
-      console.log("Бот победил! Предмет игрока сгорает.");
-      // Ничего делать не нужно, т.к. предмет уже удален из инвентаря при создании ставки
-    }
-    // Ничья - возвращаем предмет игрока
-    else if (updatedRoom.status === "finished" && !updatedRoom.winner) {
-      console.log("Ничья! Возвращаем предмет игрока");
-      const playerStakeItemId = updatedRoom.stakes[currentPlayer.id];
-      if (playerStakeItemId) {
-        const playerItem = GameService.getItemById(playerStakeItemId);
-        if (playerItem) {
-          addItem(playerItem);
-        }
+      
+      // Обновляем список комнат
+      await refreshRooms();
+      
+      // Если следующий ход - бота, и игра продолжается, запускаем его автоматически
+      if (updatedRoom.status === "playing" && nextPlayer?.isBot) {
+        triggerBotMove(updatedRoom);
       }
+    } catch (error) {
+      console.error("Ошибка при выполнении хода:", error);
     }
+  }, [currentRoom, isSpectating, user, addItem, triggerBotMove, refreshRooms]);
+
+  // Загружаем список комнат при первом рендере
+  useEffect(() => {
+    refreshRooms();
+  }, [refreshRooms]);
+
+  // Настраиваем периодическое обновление списка комнат
+  useEffect(() => {
+    const updateInterval = setInterval(() => {
+      refreshRooms();
+    }, 5000); // Обновляем каждые 5 секунд
     
-    // Обновляем доступные комнаты
-    setAvailableRooms(prev => 
-      prev.map(r => r.id === currentRoom.id ? updatedRoom : r)
-    );
-    
-    // Обновляем текущую комнату
-    setCurrentRoom(updatedRoom);
-    
-    // Если следующий ход - бота, и игра продолжается, запускаем его автоматически
-    if (updatedRoom.status === "playing" && nextPlayer?.isBot) {
-      triggerBotMove(updatedRoom);
-    }
-  }, [currentRoom, isSpectating, user, addItem, triggerBotMove]);
+    return () => clearInterval(updateInterval);
+  }, [refreshRooms]);
 
   return {
     availableRooms,
@@ -461,6 +534,7 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
     leaveRoom,
     makeMove,
     spectateRoom,
-    getRoomById
+    getRoomById,
+    refreshRooms
   };
 };

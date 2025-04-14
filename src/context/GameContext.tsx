@@ -2,7 +2,6 @@ import React, { createContext, useContext, useEffect } from "react";
 import { useAuth } from "./AuthContext";
 import { GameContextType } from "@/types/game";
 import { useGameActions } from "@/hooks/useGameActions";
-import { GameService } from "@/services/gameService";
 import { BotService } from "@/services/botService";
 
 // Создаем контекст
@@ -29,63 +28,24 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Используем хук с игровой логикой
   const {
     availableRooms,
-    setAvailableRooms,
     currentRoom,
-    setCurrentRoom,
-    isSpectating,
-    setIsSpectating,
-    createRoom,
     joinRoom,
+    createRoom,
     leaveRoom,
     makeMove,
+    getRoomById,
     spectateRoom,
-    getRoomById
+    refreshRooms
   } = useGameActions(user);
-  
-  // Загружаем начальные данные при монтировании компонента
-  useEffect(() => {
-    // Имитация загрузки комнат с сервера
-    const fetchInitialRooms = async () => {
-      if (availableRooms.length === 0) {
-        try {
-          const rooms = await GameService.fetchRooms();
-          setAvailableRooms(rooms);
-        } catch (error) {
-          console.error("Ошибка при загрузке комнат:", error);
-        }
-      }
-    };
-    
-    fetchInitialRooms();
-    
-    // Имитация периодического обновления списка комнат
-    const interval = setInterval(() => {
-      // В реальном приложении здесь был бы запрос к серверу для получения актуальных данных
-      // fetchRoomsUpdate();
-    }, 5000);
-    
-    return () => clearInterval(interval);
-  }, [availableRooms.length, setAvailableRooms]);
   
   // Очищаем завершенные игры каждые 5 минут
   useEffect(() => {
-    const cleanupInterval = setInterval(() => {
-      const now = Date.now();
-      const fiveMinutesInMs = 5 * 60 * 1000;
-      
-      setAvailableRooms(prev => 
-        prev.filter(room => {
-          // Оставляем только комнаты, которые:
-          // 1. Всё еще активны, или
-          // 2. Завершились менее 5 минут назад
-          return room.status !== "finished" || 
-                 (now - room.lastActivity) < fiveMinutesInMs;
-        })
-      );
+    const cleanupInterval = setInterval(async () => {
+      await refreshRooms(); // Сначала обновляем, чтобы получить актуальные данные
     }, 60 * 1000); // Проверяем каждую минуту
     
     return () => clearInterval(cleanupInterval);
-  }, [setAvailableRooms]);
+  }, [refreshRooms]);
   
   // Функция для включения/выключения ботов
   const toggleBots = (enabled: boolean) => {
@@ -104,6 +64,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Статусы для упрощения проверки состояния игры
   const isWaiting = currentRoom?.status === "waiting";
   const isPlaying = currentRoom?.status === "playing";
+  const isSpectating = currentRoom !== null && !currentRoom.players.some(p => p.username === user?.username);
   
   // Формируем значение контекста
   const contextValue: GameContextType = {
@@ -119,7 +80,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isPlaying,
     isSpectating,
     toggleBots,
-    isBotsEnabled
+    isBotsEnabled,
+    refreshRooms
   };
   
   return (
