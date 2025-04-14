@@ -10,7 +10,7 @@ interface ItemDetailsProps {
   onClose: () => void;
 }
 
-const ItemDetails: React.FC<ItemDetailsProps> = ({ itemId, onClose }) => {
+export const ItemDetails: React.FC<ItemDetailsProps> = ({ itemId, onClose }) => {
   const { getItem, useItem, equipItem, dropItem } = useInventory();
   
   const inventoryItem = getItem(itemId);
@@ -154,4 +154,5 @@ const ItemDetails: React.FC<ItemDetailsProps> = ({ itemId, onClose }) => {
   );
 };
 
+// Добавляем и дефолтный экспорт, чтобы поддерживать оба варианта импорта
 export default ItemDetails;
