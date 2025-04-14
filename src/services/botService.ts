@@ -20,9 +20,17 @@ export class BotService {
   static readonly BOT_STAKE_ITEM_ID = "bot-item";
   
   /**
+   * Глобальная настройка для включения/отключения бота
+   */
+  static botEnabled = true;
+  
+  /**
    * Проверяет, нужно ли добавлять бота в комнату (если она ожидает игрока дольше минуты)
    */
   static shouldAddBot(room: GameRoom): boolean {
+    // Если боты глобально отключены, не добавляем их
+    if (!this.botEnabled) return false;
+    
     // Проверяем, что комната в состоянии ожидания
     if (room.status !== "waiting") return false;
     
@@ -37,9 +45,33 @@ export class BotService {
   }
   
   /**
+   * Включает автоматическое добавление ботов
+   */
+  static enableBots(): void {
+    this.botEnabled = true;
+  }
+  
+  /**
+   * Отключает автоматическое добавление ботов
+   */
+  static disableBots(): void {
+    this.botEnabled = false;
+  }
+  
+  /**
+   * Возвращает текущее состояние настройки ботов
+   */
+  static isBotsEnabled(): boolean {
+    return this.botEnabled;
+  }
+  
+  /**
    * Добавляет бота в комнату
    */
   static addBotToRoom(room: GameRoom): GameRoom {
+    // Если боты отключены, возвращаем комнату без изменений
+    if (!this.botEnabled) return room;
+    
     // Создаем ID для бота
     const botId = generateId();
     
@@ -78,6 +110,9 @@ export class BotService {
    * Выполняет ход бота
    */
   static makeBotMove(room: GameRoom): GameRoom {
+    // Если боты отключены, возвращаем комнату без изменений
+    if (!this.botEnabled) return room;
+    
     // Находим бота среди игроков
     const botPlayer = room.players.find(player => player.isBot);
     

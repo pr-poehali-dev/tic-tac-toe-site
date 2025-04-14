@@ -3,6 +3,7 @@ import { useAuth } from "./AuthContext";
 import { GameContextType } from "@/types/game";
 import { useGameActions } from "@/hooks/useGameActions";
 import { GameService } from "@/services/gameService";
+import { BotService } from "@/services/botService";
 
 // Создаем контекст
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -86,6 +87,20 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(cleanupInterval);
   }, [setAvailableRooms]);
   
+  // Функция для включения/выключения ботов
+  const toggleBots = (enabled: boolean) => {
+    if (enabled) {
+      BotService.enableBots();
+    } else {
+      BotService.disableBots();
+    }
+  };
+  
+  // Функция для проверки, включены ли боты
+  const isBotsEnabled = () => {
+    return BotService.isBotsEnabled();
+  };
+  
   // Статусы для упрощения проверки состояния игры
   const isWaiting = currentRoom?.status === "waiting";
   const isPlaying = currentRoom?.status === "playing";
@@ -102,7 +117,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     spectateRoom,
     isWaiting,
     isPlaying,
-    isSpectating
+    isSpectating,
+    toggleBots,
+    isBotsEnabled
   };
   
   return (

@@ -49,4 +49,6 @@ export interface GameContextType {
   isWaiting?: boolean;
   isPlaying?: boolean;
   isSpectating: boolean;
+  toggleBots?: (enabled: boolean) => void;
+  isBotsEnabled?: () => boolean;
 }
