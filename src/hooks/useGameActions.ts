@@ -44,12 +44,35 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
         const updatedCurrentRoom = rooms.find(room => room.id === currentRoom.id);
         if (updatedCurrentRoom) {
           setCurrentRoom(updatedCurrentRoom);
+        } else if (currentRoom && !isSpectating) {
+          // Если комната исчезла, но мы не в режиме наблюдения, 
+          // возможно, её удалили - проверим, есть ли мы в другой комнате
+          const userRoom = rooms.find(room => 
+            room.players.some(player => player.username === user?.username)
+          );
+          
+          if (userRoom) {
+            setCurrentRoom(userRoom);
+          } else {
+            // Если нас нет ни в одной комнате, сбросим текущую комнату
+            setCurrentRoom(null);
+          }
+        }
+      } else if (user && !isSpectating) {
+        // Если у нас нет выбранной комнаты, но пользователь авторизован,
+        // проверим, есть ли он в какой-то комнате
+        const userRoom = rooms.find(room => 
+          room.players.some(player => player.username === user.username)
+        );
+        
+        if (userRoom) {
+          setCurrentRoom(userRoom);
         }
       }
     } catch (error) {
       console.error("Ошибка при обновлении комнат:", error);
     }
-  }, [currentRoom]);
+  }, [currentRoom, user, isSpectating]);
 
   /**
    * Находит комнату по ID или коду
@@ -123,14 +146,12 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
     // Сохраняем комнату на "сервере"
     try {
       await GameService.saveRoom(updatedRoom);
-      await refreshRooms(); // Обновляем список комнат
       
-      // Находим созданную комнату в обновленном списке
-      const createdRoom = getRoomById(roomId);
-      if (createdRoom) {
-        setCurrentRoom(createdRoom);
-        setIsSpectating(false);
-      }
+      // Обновляем сначала комнату локально, а потом обновим список
+      setCurrentRoom(updatedRoom);
+      setIsSpectating(false);
+      
+      await refreshRooms(); // Обновляем список комнат
     } catch (error) {
       console.error("Ошибка при создании комнаты:", error);
       // Возвращаем предмет в инвентарь при ошибке
@@ -138,7 +159,7 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
         addItem(stakeItem.item);
       }
     }
-  }, [user, availableRooms, getItem, removeItem, addItem, getRoomById, refreshRooms]);
+  }, [user, availableRooms, getItem, removeItem, addItem, refreshRooms]);
 
   /**
    * Проверяет комнаты на необходимость добавления бота
@@ -252,14 +273,12 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
     try {
       // Сохраняем обновленную комнату на "сервере"
       await GameService.saveRoom(updatedRoom);
-      await refreshRooms(); // Обновляем список комнат
       
-      // Находим присоединенную комнату в обновленном списке
-      const joinedRoom = getRoomById(roomId);
-      if (joinedRoom) {
-        setCurrentRoom(joinedRoom);
-        setIsSpectating(false);
-      }
+      // Обновляем сначала комнату локально, а потом обновим список
+      setCurrentRoom(updatedRoom);
+      setIsSpectating(false);
+      
+      await refreshRooms(); // Обновляем список комнат
     } catch (error) {
       console.error("Ошибка при присоединении к комнате:", error);
       // Возвращаем предмет в инвентарь при ошибке
@@ -330,8 +349,12 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
     // Если игрок был один или с ботом, удаляем комнату
     const hasOnlyBotOrSinglePlayer = currentRoom.players.length === 1 || 
       (currentRoom.players.length === 2 && currentRoom.players.some(p => p.isBot));
-      
+    
     try {
+      // Сначала сбрасываем текущую комнату, чтобы пользователь не видел возможные ошибки
+      setCurrentRoom(null);
+      setIsSpectating(false);
+      
       if (hasOnlyBotOrSinglePlayer) {
         // Удаляем комнату с "сервера"
         await GameService.deleteRoom(currentRoom.id);
@@ -357,9 +380,6 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
       
       // Обновляем список комнат
       await refreshRooms();
-      
-      setCurrentRoom(null);
-      setIsSpectating(false);
     } catch (error) {
       console.error("Ошибка при выходе из комнаты:", error);
     }
@@ -450,6 +470,9 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
     };
     
     try {
+      // Обновляем комнату локально сразу, не дожидаясь ответа сервера
+      setCurrentRoom(updatedRoom);
+      
       // Сохраняем обновленную комнату на "сервере"
       await GameService.saveRoom(updatedRoom);
       
@@ -521,6 +544,51 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
     
     return () => clearInterval(updateInterval);
   }, [refreshRooms]);
+
+  // Сохраняем состояние игры в localStorage для восстановления после перезагрузки страницы
+  useEffect(() => {
+    // Загружаем состояние при монтировании
+    if (user && !currentRoom) {
+      const savedRoomId = localStorage.getItem(`game_room_${user.username}`);
+      const savedIsSpectating = localStorage.getItem(`game_spectating_${user.username}`);
+      
+      if (savedRoomId) {
+        // Проверяем, есть ли комната с таким ID
+        const room = availableRooms.find(r => r.id === savedRoomId);
+        if (room) {
+          // Проверяем, участвует ли пользователь в комнате или был в режиме наблюдения
+          const isUserInRoom = room.players.some(p => p.username === user.username);
+          const wasSpectating = savedIsSpectating === 'true';
+          
+          if (isUserInRoom || (wasSpectating && user.role === 'admin')) {
+            setCurrentRoom(room);
+            setIsSpectating(wasSpectating);
+          } else {
+            // Если пользователя нет в комнате, удаляем данные из localStorage
+            localStorage.removeItem(`game_room_${user.username}`);
+            localStorage.removeItem(`game_spectating_${user.username}`);
+          }
+        } else {
+          // Если комнаты нет, удаляем данные из localStorage
+          localStorage.removeItem(`game_room_${user.username}`);
+          localStorage.removeItem(`game_spectating_${user.username}`);
+        }
+      }
+    }
+  }, [user, currentRoom, availableRooms]);
+  
+  // Сохраняем текущую комнату в localStorage
+  useEffect(() => {
+    if (user) {
+      if (currentRoom) {
+        localStorage.setItem(`game_room_${user.username}`, currentRoom.id);
+        localStorage.setItem(`game_spectating_${user.username}`, String(isSpectating));
+      } else {
+        localStorage.removeItem(`game_room_${user.username}`);
+        localStorage.removeItem(`game_spectating_${user.username}`);
+      }
+    }
+  }, [user, currentRoom, isSpectating]);
 
   return {
     availableRooms,
