@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { User, Package } from "lucide-react";
+import UnderwaterIcon from "@/components/UnderwaterIcon";
 
 const Header: React.FC = () => {
   const location = useLocation();
@@ -27,20 +28,22 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="border-b">
+    <header className="border-b border-ocean-200 dark:border-ocean-700 backdrop-blur-sm bg-white/40 dark:bg-ocean-900/40">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
           <Link to="/" className="flex items-center gap-2">
-            <span className="text-xl font-bold">SVOIKIT</span>
+            <UnderwaterIcon emoji="🐋" className="text-2xl" delay={0.5} />
+            <span className="text-xl font-bold text-ocean-700 dark:text-ocean-100">SVOIKIT</span>
             <span className="text-sm text-muted-foreground hidden sm:inline-block">свой кит - твои игры</span>
           </Link>
           <nav className="flex items-center gap-4">
-            <Link to="/" className="text-sm font-medium hover:underline">
+            <Link to="/" className="text-sm font-medium text-ocean-600 dark:text-ocean-200 hover:text-ocean-800 dark:hover:text-ocean-50 transition-colors">
               Главная
             </Link>
             {isAuthenticated && (
               <>
-                <Link to="/game" className="text-sm font-medium hover:underline">
+                <Link to="/game" className="text-sm font-medium text-ocean-600 dark:text-ocean-200 hover:text-ocean-800 dark:hover:text-ocean-50 transition-colors flex items-center">
+                  <UnderwaterIcon emoji="🎮" className="text-sm mr-1" delay={1} />
                   Играть
                 </Link>
               </>
@@ -52,13 +55,13 @@ const Header: React.FC = () => {
           {isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full bg-ocean-100 dark:bg-ocean-700 hover:bg-ocean-200 dark:hover:bg-ocean-600">
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback>{user ? getInitials(user.username) : "U"}</AvatarFallback>
+                    <AvatarFallback className="bg-ocean-500 text-white">{user ? getInitials(user.username) : "U"}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="underwater-card border-none">
                 <DropdownMenuItem className="font-medium cursor-default">
                   {user?.username}
                 </DropdownMenuItem>
@@ -81,12 +84,12 @@ const Header: React.FC = () => {
           ) : (
             <>
               <Link to="/login">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="bg-white/50 dark:bg-ocean-700/50 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-ocean-600/70">
                   Войти
                 </Button>
               </Link>
               <Link to="/register">
-                <Button size="sm">
+                <Button size="sm" className="coral-button">
                   Регистрация
                 </Button>
               </Link>

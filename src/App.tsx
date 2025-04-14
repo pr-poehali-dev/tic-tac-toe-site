@@ -14,6 +14,7 @@ import AdminLogin from "./pages/AdminLogin";
 import InventoryPage from "./pages/InventoryPage";
 import Profile from "./pages/Profile";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import BubbleBackground from "./components/BubbleBackground";
 
 // Обновление заголовка сайта
 document.title = "SVOIKIT - свой кит, твои игры";
@@ -26,6 +27,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <Header />
+      <BubbleBackground />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/game" element={
