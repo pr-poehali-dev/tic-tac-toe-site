@@ -13,7 +13,7 @@ import {
   Sword, 
   Package, 
   Apple, 
-  Tool, 
+  Hammer, 
   ScrollText 
 } from "lucide-react";
 
@@ -40,7 +40,7 @@ const InventoryPage: React.FC = () => {
     switch (category) {
       case 'weapon': return <Sword className="h-4 w-4 mr-1" />;
       case 'armor': return <Shield className="h-4 w-4 mr-1" />;
-      case 'tool': return <Tool className="h-4 w-4 mr-1" />;
+      case 'tool': return <Hammer className="h-4 w-4 mr-1" />;
       case 'consumable': return <Apple className="h-4 w-4 mr-1" />;
       case 'collectible': return <Package className="h-4 w-4 mr-1" />;
       case 'quest': return <ScrollText className="h-4 w-4 mr-1" />;
@@ -104,7 +104,7 @@ const InventoryPage: React.FC = () => {
               <Shield className="h-4 w-4 mr-1" /> Броня
             </TabsTrigger>
             <TabsTrigger value="tool" className="flex items-center">
-              <Tool className="h-4 w-4 mr-1" /> Инструменты
+              <Hammer className="h-4 w-4 mr-1" /> Инструменты
             </TabsTrigger>
             <TabsTrigger value="consumable" className="flex items-center">
               <Apple className="h-4 w-4 mr-1" /> Расходники
