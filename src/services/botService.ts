@@ -10,7 +10,7 @@ export class BotService {
   static readonly BOT_NAME = "РобоТик";
   
   /**
-   * Символ, которым играет бот (O)
+   * Символ, которым играет бот (О)
    */
   static readonly BOT_SYMBOL = "О";
   
@@ -64,6 +64,7 @@ export class BotService {
       players: [...room.players, botPlayer],
       status: "playing",
       lastActivity: Date.now(),
+      currentTurn: firstPlayer.id, // Начинает игрок, а не бот
       stakes: {
         ...room.stakes,
         [botId]: this.BOT_STAKE_ITEM_ID
@@ -77,14 +78,18 @@ export class BotService {
    * Выполняет ход бота
    */
   static makeBotMove(room: GameRoom): GameRoom {
-    // Проверяем, что сейчас ход бота
+    // Находим бота среди игроков
     const botPlayer = room.players.find(player => player.isBot);
-    if (!botPlayer || room.currentTurn !== botPlayer.id) {
-      console.log("Не ход бота или бот не найден", { 
-        botFound: !!botPlayer, 
-        currentTurn: room.currentTurn, 
-        botId: botPlayer?.id 
-      });
+    
+    // Если бота нет, или статус игры не "playing", возвращаем комнату без изменений
+    if (!botPlayer || room.status !== "playing") {
+      console.log("Бот не найден или игра не активна", room.status);
+      return room;
+    }
+    
+    // Проверяем, что сейчас действительно ход бота
+    if (room.currentTurn !== botPlayer.id) {
+      console.log("Не ход бота (currentTurn)", room.currentTurn, botPlayer.id);
       return room;
     }
     
@@ -95,10 +100,11 @@ export class BotService {
       return room;
     }
     
-    console.log("Бот делает ход", { 
-      board: room.board,
+    console.log("Бот делает ход:", { 
+      botId: botPlayer.id,
       botSymbol: botPlayer.symbol,
-      humanSymbol: humanPlayer.symbol
+      currentTurn: room.currentTurn,
+      board: room.board
     });
     
     // Находим лучший ход для бота
@@ -110,29 +116,39 @@ export class BotService {
     
     // Если бот не может сделать ход, возвращаем комнату без изменений
     if (botMove === null) {
-      console.log("Бот не может сделать ход");
+      console.log("Бот не нашел возможных ходов");
       return room;
     }
     
     console.log("Бот выбрал ход:", botMove);
     
-    // Обновляем доску
+    // Создаем новую доску с ходом бота
     const newBoard = [...room.board];
     newBoard[botMove] = botPlayer.symbol;
     
     // Проверяем, есть ли победитель
     const winner = calculateWinner(newBoard);
     
-    // Проверяем, заполнена ли доска
+    // Проверяем, заполнена ли доска (ничья)
     const isBoardFull = newBoard.every(cell => cell !== null);
     
-    // Обновляем комнату
+    // Определяем новый статус игры
+    const newStatus = winner || isBoardFull ? "finished" : "playing";
+    
+    // Определяем победителя (имя)
+    const winnerName = winner === botPlayer.symbol 
+      ? botPlayer.username 
+      : winner === humanPlayer.symbol 
+        ? humanPlayer.username 
+        : null;
+    
+    // Обновляем комнату с ходом бота
     const updatedRoom: GameRoom = {
       ...room,
       board: newBoard,
       currentTurn: humanPlayer.id, // Передаем ход человеку
-      status: winner || isBoardFull ? "finished" : "playing",
-      winner: winner === botPlayer.symbol ? botPlayer.username : winner === humanPlayer.symbol ? humanPlayer.username : null,
+      status: newStatus,
+      winner: winnerName,
       lastActivity: Date.now()
     };
     
