@@ -12,6 +12,7 @@ import Register from "./pages/Register";
 import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
 import Inventory from "./pages/Inventory";
+import Profile from "./pages/Profile";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,11 @@ const App = () => (
         <Route path="/inventory" element={
           <ProtectedRoute>
             <Inventory />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <Profile />
           </ProtectedRoute>
         } />
         <Route path="/admin" element={
