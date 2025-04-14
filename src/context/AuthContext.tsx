@@ -54,9 +54,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Для тестирования: имитация входа как администратор с особыми учетными данными
     const isAdmin = credentials.username === "admin" && credentials.password === "admin123";
     
+    // Генерируем числовой ID пользователя
+    const userId = Math.floor(100000000 + Math.random() * 900000000).toString();
+    
     // Для примера: успешная авторизация любыми данными
     const user = {
-      id: "user_" + Math.random().toString(36).substring(2, 10),
+      id: userId,
       username: credentials.username,
       email: `${credentials.username.toLowerCase()}@example.com`,
       role: isAdmin ? 'admin' as const : 'user' as const
@@ -71,9 +74,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (userData: AuthCredentials): Promise<boolean> => {
+    // Генерируем числовой ID пользователя
+    const userId = Math.floor(100000000 + Math.random() * 900000000).toString();
+    
     // Для примера: успешная регистрация любыми данными
     const user = {
-      id: "user_" + Math.random().toString(36).substring(2, 10),
+      id: userId,
       username: userData.username,
       email: `${userData.username.toLowerCase()}@example.com`,
       role: 'user' as const

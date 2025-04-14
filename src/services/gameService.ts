@@ -15,15 +15,15 @@ export class GameService {
       setTimeout(() => {
         const mockRooms: GameRoom[] = [
           {
-            id: "room1",
+            id: "123456789",
             roomCode: "ABC123",
-            creatorId: "player1",
+            creatorId: "987654321",
             players: [{
-              id: "player1",
+              id: "987654321",
               username: "Игрок 1",
               symbol: "Х"
             }],
-            currentTurn: "player1",
+            currentTurn: "987654321",
             status: "waiting",
             winner: null,
             board: Array(9).fill(null),

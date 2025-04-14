@@ -1,10 +1,11 @@
 // Утилиты для игры
 
 /**
- * Генератор уникальных ID
+ * Генератор уникальных ID (только цифры)
  */
 export const generateId = (): string => {
-  return Math.random().toString(36).substr(2, 9);
+  // Генерация ID из 9 случайных цифр
+  return Math.floor(100000000 + Math.random() * 900000000).toString();
 };
 
 /**
