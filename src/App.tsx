@@ -15,6 +15,9 @@ import InventoryPage from "./pages/InventoryPage";
 import Profile from "./pages/Profile";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
+// Обновление заголовка сайта
+document.title = "SVOIKIT - свой кит, твои игры";
+
 const queryClient = new QueryClient();
 
 const App = () => (

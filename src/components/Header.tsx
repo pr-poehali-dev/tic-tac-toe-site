@@ -30,8 +30,9 @@ const Header: React.FC = () => {
     <header className="border-b">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link to="/" className="text-xl font-bold">
-            🎮 Крестики-нолики
+          <Link to="/" className="flex items-center gap-2">
+            <span className="text-xl font-bold">SVOIKIT</span>
+            <span className="text-sm text-muted-foreground hidden sm:inline-block">свой кит - твои игры</span>
           </Link>
           <nav className="flex items-center gap-4">
             <Link to="/" className="text-sm font-medium hover:underline">
