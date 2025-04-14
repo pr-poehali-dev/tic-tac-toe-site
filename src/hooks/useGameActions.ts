@@ -43,6 +43,16 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
   const createRoom = useCallback(() => {
     if (!user) return;
     
+    // Проверяем, не состоит ли уже пользователь в какой-либо комнате
+    const userInRoom = availableRooms.some(room => 
+      room.players.some(player => player.username === user.username)
+    );
+    
+    if (userInRoom) {
+      console.warn("Вы уже участвуете в другой игре");
+      return;
+    }
+    
     const playerId = generateId();
     const roomId = generateId();
     const roomCode = generateRoomCode();
@@ -72,7 +82,7 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
     setAvailableRooms(prev => [...prev, newRoom]);
     setCurrentRoom(newRoom);
     setIsSpectating(false);
-  }, [user]);
+  }, [user, availableRooms]);
 
   /**
    * Присоединяется к существующей комнате
@@ -80,8 +90,25 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
   const joinRoom = useCallback((roomId: string) => {
     if (!user) return;
     
+    // Проверяем, не состоит ли уже пользователь в какой-либо комнате
+    const userInRoom = availableRooms.some(room => 
+      room.players.some(player => player.username === user.username)
+    );
+    
+    if (userInRoom) {
+      console.warn("Вы уже участвуете в другой игре");
+      return;
+    }
+    
     const room = getRoomById(roomId);
     if (!room || room.status !== "waiting" || room.players.length >= 2) return;
+    
+    // Проверяем, не пытается ли игрок присоединиться дважды к одной комнате
+    const isAlreadyInRoom = room.players.some(player => player.username === user.username);
+    if (isAlreadyInRoom) {
+      console.warn("Вы уже в этой комнате");
+      return;
+    }
     
     const playerId = generateId();
     
@@ -107,7 +134,7 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
     
     setCurrentRoom(updatedRoom);
     setIsSpectating(false);
-  }, [user, getRoomById]);
+  }, [user, availableRooms, getRoomById]);
 
   /**
    * Позволяет администратору наблюдать за игрой

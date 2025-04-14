@@ -1,113 +1,97 @@
-import React, { useState } from "react";
+import React from "react";
 import { useGame } from "@/context/GameContext";
-import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui/badge";
-import { formatDistanceToNow } from "date-fns";
-import { ru } from "date-fns/locale";
-import { Search } from "lucide-react";
-import { Link } from "react-router-dom";
 
 const GameLobby: React.FC = () => {
-  const { availableRooms, createRoom, joinRoom } = useGame();
+  const { availableRooms, createRoom, joinRoom, spectateRoom } = useGame();
   const { user } = useAuth();
-  const [roomCode, setRoomCode] = useState("");
   
-  // Фильтруем комнаты в статусе ожидания и где текущий игрок не присутствует
-  const waitingRooms = availableRooms.filter(room => 
-    room.status === "waiting" && 
-    !room.players.some(player => player.username === user?.username)
+  // Проверяем, не участвует ли уже текущий пользователь в какой-то комнате
+  const userInGame = availableRooms.some(room => 
+    room.players.some(player => player.username === user?.username)
   );
   
-  // Обработчик присоединения по коду
-  const handleJoinByCode = () => {
-    if (!roomCode.trim()) return;
-    
-    // Ищем комнату по коду
-    const room = availableRooms.find(r => 
-      r.roomCode.toLowerCase() === roomCode.trim().toLowerCase() || 
-      r.id === roomCode.trim()
-    );
-    
-    if (room && room.status === "waiting") {
-      joinRoom(room.id);
-    } else {
-      // Можно добавить уведомление, что комната не найдена
-      alert("Комната не найдена или уже занята");
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">Лобби игры</h2>
-        <p className="text-muted-foreground">Создайте новую игру или присоединитесь к существующей</p>
-      </div>
-      
-      <div className="flex flex-col gap-4">
-        <Button onClick={createRoom} size="lg" className="w-full">
-          Создать новую игру
+        <Button 
+          onClick={createRoom} 
+          size="lg" 
+          className="px-8"
+          disabled={userInGame}
+        >
+          Создать комнату
         </Button>
-        
-        <div className="relative mt-2">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Введите код комнаты..."
-                className="pl-8"
-                value={roomCode}
-                onChange={(e) => setRoomCode(e.target.value)}
-              />
-            </div>
-            <Button onClick={handleJoinByCode}>
-              Присоединиться
-            </Button>
-          </div>
-        </div>
+        {userInGame && (
+          <p className="text-sm text-red-500 mt-2">
+            Вы уже участвуете в игре. Покиньте текущую комнату, чтобы присоединиться к другой или создать новую.
+          </p>
+        )}
       </div>
       
-      {user?.role === 'admin' && (
-        <div className="flex justify-center mt-4">
-          <Link to="/admin">
-            <Button variant="outline">Панель администратора</Button>
-          </Link>
-        </div>
-      )}
-      
-      <div className="mt-8">
-        <h3 className="text-xl font-bold mb-4">Доступные игры</h3>
+      <div>
+        <h2 className="text-xl font-semibold mb-4">Доступные комнаты</h2>
         
-        {waitingRooms.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {waitingRooms.map(room => (
-              <Card key={room.id} className="overflow-hidden">
+        {availableRooms.length === 0 ? (
+          <div className="text-center py-10 text-muted-foreground">
+            Пока нет доступных комнат. Создайте новую!
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {availableRooms.map(room => (
+              <Card key={room.id}>
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-center">
-                    <CardTitle>Комната {room.roomCode}</CardTitle>
-                    <Badge variant="outline">Ожидание</Badge>
+                    <CardTitle className="text-lg">Комната {room.roomCode}</CardTitle>
+                    <Badge variant={room.status === "waiting" ? "outline" : "secondary"}>
+                      {room.status === "waiting" ? "Ожидание" : "Идет игра"}
+                    </Badge>
                   </div>
-                  <CardDescription>
-                    Создана {formatDistanceToNow(room.createdAt, { addSuffix: true, locale: ru })}
-                  </CardDescription>
                 </CardHeader>
-                <CardContent className="pb-2">
-                  <p className="mb-1">Игрок: <span className="font-medium">{room.players[0].username}</span></p>
-                  <p className="text-sm text-muted-foreground">Ожидание второго игрока...</p>
+                <CardContent>
+                  <p className="text-sm mb-2">Создана: {new Date(room.createdAt).toLocaleString()}</p>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Игроки:</p>
+                    <ul className="text-sm">
+                      {room.players.map(player => (
+                        <li key={player.id} className="flex items-center gap-2">
+                          <span className="w-6 h-6 flex items-center justify-center rounded-full bg-muted">
+                            {player.symbol}
+                          </span>
+                          <span>{player.username}</span>
+                          {player.username === user?.username && (
+                            <span className="text-xs text-muted-foreground">(Вы)</span>
+                          )}
+                        </li>
+                      ))}
+                      {room.status === "waiting" && room.players.length < 2 && (
+                        <li className="text-muted-foreground">Ожидание второго игрока...</li>
+                      )}
+                    </ul>
+                  </div>
                 </CardContent>
-                <CardFooter>
-                  <Button onClick={() => joinRoom(room.id)} className="w-full">
-                    Присоединиться
-                  </Button>
+                <CardFooter className="flex justify-end gap-2 pt-2">
+                  {user?.role === "admin" && (
+                    <Button onClick={() => spectateRoom(room.id)} variant="outline" size="sm">
+                      Наблюдать
+                    </Button>
+                  )}
+                  
+                  {room.status === "waiting" && room.players.length < 2 && (
+                    <Button 
+                      onClick={() => joinRoom(room.id)} 
+                      size="sm"
+                      disabled={userInGame || room.players.some(p => p.username === user?.username)}
+                    >
+                      Присоединиться
+                    </Button>
+                  )}
                 </CardFooter>
               </Card>
             ))}
-          </div>
-        ) : (
-          <div className="text-center py-10 bg-gray-50 dark:bg-gray-900 rounded-lg">
-            <p className="text-muted-foreground">Нет доступных игр. Создайте свою!</p>
           </div>
         )}
       </div>
