@@ -10,12 +10,15 @@ interface Player {
 
 interface GameRoom {
   id: string;
+  roomCode: string; // Уникальный код комнаты
+  creatorId: string; // ID создателя комнаты
   players: Player[];
   currentTurn: string; // id текущего игрока
   status: "waiting" | "playing" | "finished";
   winner: string | null;
   board: Array<string | null>;
   createdAt: number;
+  lastActivity: number;
 }
 
 // Тип для контекста игры
@@ -26,8 +29,11 @@ interface GameContextType {
   createRoom: () => void;
   leaveRoom: () => void;
   makeMove: (index: number) => void;
+  getRoomById: (roomId: string) => GameRoom | undefined;
+  spectateRoom: (roomId: string) => void;
   isWaiting: boolean;
   isPlaying: boolean;
+  isSpectating: boolean;
 }
 
 // Создаем контекст
@@ -45,11 +51,22 @@ export const useGame = () => {
 // Генератор уникальных ID
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
+// Генератор кода комнаты (6 символов)
+const generateRoomCode = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Без схожих символов I,1,O,0
+  let result = '';
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
 // Провайдер игрового контекста
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [availableRooms, setAvailableRooms] = useState<GameRoom[]>([]);
   const [currentRoom, setCurrentRoom] = useState<GameRoom | null>(null);
+  const [isSpectating, setIsSpectating] = useState<boolean>(false);
   
   // Имитация получения данных с сервера
   useEffect(() => {
@@ -57,6 +74,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const mockRooms: GameRoom[] = [
       {
         id: "room1",
+        roomCode: "ABC123",
+        creatorId: "player1",
         players: [{
           id: "player1",
           username: "Игрок 1",
@@ -66,7 +85,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         status: "waiting",
         winner: null,
         board: Array(9).fill(null),
-        createdAt: Date.now() - 60000
+        createdAt: Date.now() - 60000,
+        lastActivity: Date.now() - 50000
       }
     ];
     
@@ -83,34 +103,49 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(interval);
   }, [availableRooms.length]);
   
+  // Получение комнаты по ID
+  const getRoomById = (roomId: string) => {
+    return availableRooms.find(room => room.id === roomId || room.roomCode === roomId);
+  };
+  
   // Создание новой комнаты
   const createRoom = () => {
     if (!user) return;
     
+    const playerId = generateId();
+    const roomId = generateId();
+    const roomCode = generateRoomCode();
+    
     const newRoom: GameRoom = {
-      id: generateId(),
+      id: roomId,
+      roomCode: roomCode,
+      creatorId: playerId,
       players: [{
-        id: generateId(),
+        id: playerId,
         username: user.username,
         symbol: "Х"
       }],
-      currentTurn: generateId(),
+      currentTurn: playerId,
       status: "waiting",
       winner: null,
       board: Array(9).fill(null),
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      lastActivity: Date.now()
     };
     
     setAvailableRooms(prev => [...prev, newRoom]);
     setCurrentRoom(newRoom);
+    setIsSpectating(false);
   };
   
   // Присоединение к существующей комнате
   const joinRoom = (roomId: string) => {
     if (!user) return;
     
-    const room = availableRooms.find(r => r.id === roomId);
+    const room = getRoomById(roomId);
     if (!room || room.status !== "waiting" || room.players.length >= 2) return;
+    
+    const playerId = generateId();
     
     // Добавляем второго игрока
     const updatedRoom = {
@@ -118,24 +153,42 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       players: [
         ...room.players,
         {
-          id: generateId(),
+          id: playerId,
           username: user.username,
           symbol: "О"
         }
       ],
       status: "playing",
+      lastActivity: Date.now()
     };
     
     setAvailableRooms(prev => 
-      prev.map(r => r.id === roomId ? updatedRoom : r)
+      prev.map(r => r.id === room.id ? updatedRoom : r)
     );
     
     setCurrentRoom(updatedRoom);
+    setIsSpectating(false);
+  };
+  
+  // Наблюдение за комнатой (для администратора)
+  const spectateRoom = (roomId: string) => {
+    const room = getRoomById(roomId);
+    if (!room) return;
+    
+    setCurrentRoom(room);
+    setIsSpectating(true);
   };
   
   // Выход из комнаты
   const leaveRoom = () => {
-    if (!currentRoom || !user) return;
+    if (!currentRoom || (isSpectating && user?.role === 'admin')) {
+      // Если администратор наблюдает за игрой, просто выходим из режима наблюдения
+      setCurrentRoom(null);
+      setIsSpectating(false);
+      return;
+    }
+    
+    if (!user) return;
     
     // Если игрок был один, удаляем комнату
     if (currentRoom.players.length === 1) {
@@ -146,6 +199,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...currentRoom,
         players: currentRoom.players.filter(p => p.username !== user.username),
         status: "waiting",
+        lastActivity: Date.now()
       };
       
       setAvailableRooms(prev => 
@@ -154,11 +208,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     setCurrentRoom(null);
+    setIsSpectating(false);
   };
   
   // Совершение хода
   const makeMove = (index: number) => {
-    if (!currentRoom || !user || currentRoom.status !== "playing") return;
+    if (!currentRoom || !user || currentRoom.status !== "playing" || isSpectating) return;
     
     // Проверяем, что клетка пуста и сейчас ход текущего игрока
     if (currentRoom.board[index] !== null) return;
@@ -184,6 +239,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       currentTurn: nextPlayer ? nextPlayer.id : currentPlayer.id,
       status: winner || isBoardFull ? "finished" : "playing",
       winner: winner ? currentPlayer.username : null,
+      lastActivity: Date.now()
     };
     
     setAvailableRooms(prev => 
@@ -227,8 +283,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     createRoom,
     leaveRoom,
     makeMove,
+    getRoomById,
+    spectateRoom,
     isWaiting,
-    isPlaying
+    isPlaying,
+    isSpectating
   };
   
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

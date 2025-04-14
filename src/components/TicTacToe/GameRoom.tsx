@@ -3,11 +3,16 @@ import { useGame } from "@/context/GameContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/context/AuthContext";
+import { formatDistanceToNow } from "date-fns";
+import { ru } from "date-fns/locale";
+import { Copy } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 import Board from "./Board";
 
 const GameRoom: React.FC = () => {
-  const { currentRoom, leaveRoom, makeMove } = useGame();
+  const { currentRoom, leaveRoom, makeMove, isSpectating } = useGame();
   const { user } = useAuth();
+  const { toast } = useToast();
   
   if (!currentRoom) return null;
   
@@ -29,49 +34,91 @@ const GameRoom: React.FC = () => {
       const isMyTurn = currentRoom.players.some(p => 
         p.username === user?.username && p.id === currentRoom.currentTurn
       );
-      gameStatus = isMyTurn ? "Ваш ход" : "Ход соперника";
+      
+      if (isSpectating) {
+        const currentPlayerTurn = currentRoom.players.find(p => p.id === currentRoom.currentTurn);
+        gameStatus = `Ход игрока: ${currentPlayerTurn?.username || "Неизвестно"} (${currentPlayerTurn?.symbol || "?"})`;
+      } else {
+        gameStatus = isMyTurn ? "Ваш ход" : "Ход соперника";
+      }
     }
   } else if (currentRoom.status === "finished") {
     if (currentRoom.winner) {
-      gameStatus = currentRoom.winner === user?.username 
-        ? "Вы победили!" 
-        : `Победитель: ${currentRoom.winner}`;
+      if (isSpectating) {
+        gameStatus = `Победитель: ${currentRoom.winner}`;
+      } else {
+        gameStatus = currentRoom.winner === user?.username 
+          ? "Вы победили!" 
+          : `Победитель: ${currentRoom.winner}`;
+      }
     } else {
       gameStatus = "Ничья!";
     }
   }
 
+  const copyRoomCode = () => {
+    navigator.clipboard.writeText(currentRoom.roomCode);
+    toast({
+      title: "Код скопирован",
+      description: "Код комнаты скопирован в буфер обмена"
+    });
+  };
+
   return (
     <div className="space-y-6">
       <Card className="overflow-hidden">
         <CardHeader className="pb-2">
-          <CardTitle>Игровая комната</CardTitle>
-          <CardDescription>
-            ID: {currentRoom.id.substring(0, 6)}
-          </CardDescription>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Игровая комната</CardTitle>
+              <CardDescription>
+                Создана {formatDistanceToNow(currentRoom.createdAt, { addSuffix: true, locale: ru })}
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2 bg-muted p-2 rounded">
+              <span className="text-sm font-medium">Код: {currentRoom.roomCode}</span>
+              <Button variant="ghost" size="icon" onClick={copyRoomCode} className="h-6 w-6">
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         
         <CardContent className="pb-4">
+          {isSpectating && (
+            <div className="bg-yellow-100 dark:bg-yellow-950 p-2 rounded mb-4 text-sm">
+              <p className="font-medium">Режим наблюдения (только для администраторов)</p>
+            </div>
+          )}
+          
           <div className="flex justify-between mb-4">
             <div>
-              <p className="font-medium">{currentPlayer?.username} ({currentPlayer?.symbol})</p>
-              {currentRoom.status === "playing" && (
-                <p className="text-sm text-muted-foreground">
-                  {currentRoom.currentTurn === currentPlayer?.id ? "Ваш ход" : ""}
-                </p>
+              {currentRoom.players[0] && (
+                <div>
+                  <p className="font-medium">{currentRoom.players[0].username} ({currentRoom.players[0].symbol})</p>
+                  {currentRoom.status === "playing" && (
+                    <p className="text-sm text-muted-foreground">
+                      {currentRoom.currentTurn === currentRoom.players[0].id ? "Сейчас ходит" : ""}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
             
-            {opponentPlayer && (
-              <div className="text-right">
-                <p className="font-medium">{opponentPlayer.username} ({opponentPlayer.symbol})</p>
-                {currentRoom.status === "playing" && (
-                  <p className="text-sm text-muted-foreground">
-                    {currentRoom.currentTurn === opponentPlayer.id ? "Ходит" : ""}
-                  </p>
-                )}
-              </div>
-            )}
+            <div className="text-right">
+              {currentRoom.players[1] ? (
+                <div>
+                  <p className="font-medium">{currentRoom.players[1].username} ({currentRoom.players[1].symbol})</p>
+                  {currentRoom.status === "playing" && (
+                    <p className="text-sm text-muted-foreground">
+                      {currentRoom.currentTurn === currentRoom.players[1].id ? "Сейчас ходит" : ""}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Ожидание второго игрока...</p>
+              )}
+            </div>
           </div>
           
           <div className="text-center mb-4">
@@ -83,6 +130,8 @@ const GameRoom: React.FC = () => {
               squares={currentRoom.board} 
               onClick={(i) => {
                 // Проверяем, можно ли сделать ход
+                if (isSpectating) return; // В режиме наблюдения ходить нельзя
+                
                 const canMove = 
                   currentRoom.status === "playing" && 
                   currentRoom.currentTurn === currentPlayer?.id &&
@@ -94,11 +143,16 @@ const GameRoom: React.FC = () => {
               }} 
             />
           </div>
+          
+          <div className="text-sm text-muted-foreground">
+            <p>ID комнаты: {currentRoom.id}</p>
+            <p>Последняя активность: {formatDistanceToNow(currentRoom.lastActivity, { addSuffix: true, locale: ru })}</p>
+          </div>
         </CardContent>
         
         <CardFooter>
           <Button onClick={leaveRoom} className="w-full" variant="outline">
-            {currentRoom.status === "finished" ? "Вернуться в лобби" : "Покинуть игру"}
+            {isSpectating ? "Вернуться к списку комнат" : (currentRoom.status === "finished" ? "Вернуться в лобби" : "Покинуть игру")}
           </Button>
         </CardFooter>
       </Card>

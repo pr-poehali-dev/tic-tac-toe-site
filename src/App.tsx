@@ -11,6 +11,7 @@ import NotFound from "./pages/NotFound";
 import TicTacToe from "./pages/TicTacToe";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Admin from "./pages/Admin";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,11 @@ const App = () => (
             <Route path="/game" element={
               <ProtectedRoute>
                 <TicTacToe />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin" element={
+              <ProtectedRoute>
+                <Admin />
               </ProtectedRoute>
             } />
             <Route path="/login" element={<Login />} />
