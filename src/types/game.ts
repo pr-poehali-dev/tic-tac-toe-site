@@ -1,15 +1,8 @@
-export interface Item {
-  id: string;
-  name: string;
-  description: string;
-  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
-  imgSrc: string;
-  price: number;
-  category: 'weapon' | 'armor' | 'potion' | 'resource' | 'accessory';
-  stats?: {
-    [key: string]: number;
-  };
-}
+// Импортируем тип Item из inventory для совместимости
+import { Item as InventoryItem } from "@/types/inventory";
+
+// Реэкспортируем тип для использования в game контексте
+export type Item = InventoryItem;
 
 export interface InventoryItem {
   item: Item;

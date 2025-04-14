@@ -1,5 +1,8 @@
 import { GameRoom, Item } from "@/types/game";
-import { itemsData } from "./itemsData";
+import { ITEMS } from "./itemsData";
+
+// Экспортируем ITEMS как itemsData для совместимости
+export const itemsData = ITEMS;
 
 // Имитация серверной части для хранения игровых комнат
 let serverRooms: GameRoom[] = [];
