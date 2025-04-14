@@ -9,28 +9,10 @@ import { AlertTriangle, Flame } from "lucide-react";
 
 const TicTacToe: React.FC = () => {
   const { user } = useAuth();
-  const { currentRoom, availableRooms, setAvailableRooms } = useGame();
+  const { currentRoom, availableRooms } = useGame();
   
-  // Эффект для очистки завершенных игр
-  useEffect(() => {
-    // Очищаем завершенные игры каждые 5 минут
-    const intervalId = setInterval(() => {
-      const now = Date.now();
-      const fiveMinutesInMs = 5 * 60 * 1000;
-      
-      setAvailableRooms(prev => 
-        prev.filter(room => {
-          // Оставляем только комнаты, которые:
-          // 1. Всё еще активны, или
-          // 2. Завершились менее 5 минут назад
-          return room.status !== "finished" || 
-                 (now - room.lastActivity) < fiveMinutesInMs;
-        })
-      );
-    }, 60 * 1000); // Проверяем каждую минуту
-    
-    return () => clearInterval(intervalId);
-  }, [setAvailableRooms]);
+  // Обратите внимание: мы убрали setAvailableRooms, так как эта функция 
+  // не экспортируется из GameContext, а управляется внутри контекста
   
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">

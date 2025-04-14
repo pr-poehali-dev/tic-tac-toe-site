@@ -30,7 +30,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     availableRooms,
     setAvailableRooms,
     currentRoom,
+    setCurrentRoom,
     isSpectating,
+    setIsSpectating,
     createRoom,
     joinRoom,
     leaveRoom,
@@ -63,6 +65,26 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     return () => clearInterval(interval);
   }, [availableRooms.length, setAvailableRooms]);
+  
+  // Очищаем завершенные игры каждые 5 минут
+  useEffect(() => {
+    const cleanupInterval = setInterval(() => {
+      const now = Date.now();
+      const fiveMinutesInMs = 5 * 60 * 1000;
+      
+      setAvailableRooms(prev => 
+        prev.filter(room => {
+          // Оставляем только комнаты, которые:
+          // 1. Всё еще активны, или
+          // 2. Завершились менее 5 минут назад
+          return room.status !== "finished" || 
+                 (now - room.lastActivity) < fiveMinutesInMs;
+        })
+      );
+    }, 60 * 1000); // Проверяем каждую минуту
+    
+    return () => clearInterval(cleanupInterval);
+  }, [setAvailableRooms]);
   
   // Статусы для упрощения проверки состояния игры
   const isWaiting = currentRoom?.status === "waiting";
