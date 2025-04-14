@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from "@/context/AuthContext";
 import { formatDistanceToNow } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Copy, Robot } from "lucide-react";
+import { Copy, Bot } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import Board from "./Board";
 
@@ -97,7 +97,7 @@ const GameRoom: React.FC = () => {
                 <div className="flex items-center">
                   <p className="font-medium">{currentRoom.players[0].username} ({currentRoom.players[0].symbol})</p>
                   {currentRoom.players[0].isBot && (
-                    <Robot className="ml-1 h-4 w-4 text-blue-500" title="Бот" />
+                    <Bot className="ml-1 h-4 w-4 text-blue-500" title="Бот" />
                   )}
                   {currentRoom.status === "playing" && (
                     <p className="text-sm text-muted-foreground ml-2">
@@ -118,7 +118,7 @@ const GameRoom: React.FC = () => {
                   )}
                   <p className="font-medium">{currentRoom.players[1].username} ({currentRoom.players[1].symbol})</p>
                   {currentRoom.players[1].isBot && (
-                    <Robot className="ml-1 h-4 w-4 text-blue-500" title="Бот" />
+                    <Bot className="ml-1 h-4 w-4 text-blue-500" title="Бот" />
                   )}
                 </div>
               ) : (
@@ -160,7 +160,7 @@ const GameRoom: React.FC = () => {
             <p>Последняя активность: {formatDistanceToNow(currentRoom.lastActivity, { addSuffix: true, locale: ru })}</p>
             {currentRoom.players.some(p => p.isBot) && (
               <p className="mt-2 text-blue-500 flex items-center">
-                <Robot className="mr-1 h-4 w-4" /> 
+                <Bot className="mr-1 h-4 w-4" /> 
                 В этой комнате играет бот
               </p>
             )}
