@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from "@/context/AuthContext";
 import { formatDistanceToNow } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Copy, Bot } from "lucide-react";
+import { Copy, Bot, Flame } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import Board from "./Board";
 
@@ -47,9 +47,15 @@ const GameRoom: React.FC = () => {
       if (isSpectating) {
         gameStatus = `Победитель: ${currentRoom.winner}`;
       } else {
-        gameStatus = currentRoom.winner === user?.username 
-          ? "Вы победили!" 
-          : `Победитель: ${currentRoom.winner}`;
+        const hasPlayerWon = currentRoom.winner === user?.username;
+        gameStatus = hasPlayerWon
+          ? "Вы победили! 🏆" 
+          : `Вы проиграли 😢 (победил ${currentRoom.winner})`;
+
+        // Добавляем информацию о ставке
+        if (!hasPlayerWon && currentPlayer) {
+          gameStatus += " Ваша ставка сгорела! 🔥";
+        }
       }
     } else {
       gameStatus = "Ничья!";
@@ -163,6 +169,13 @@ const GameRoom: React.FC = () => {
                 <Bot className="mr-1 h-4 w-4" /> 
                 В этой комнате играет бот
               </p>
+            )}
+            
+            {currentRoom.status === "finished" && currentRoom.winner !== user?.username && (
+              <div className="mt-2 text-red-500 flex items-center">
+                <Flame className="mr-1 h-4 w-4" />
+                <p>При проигрыше ваш предмет сгорает!</p>
+              </div>
             )}
           </div>
         </CardContent>

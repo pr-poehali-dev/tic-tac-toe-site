@@ -241,8 +241,11 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
     const player = currentRoom.players.find(p => p.username === user.username);
     if (!player) return;
     
-    // Возвращаем предмет в инвентарь, если игра еще не завершена
-    if (currentRoom.status !== "finished" && player.stakeItemId) {
+    // Возвращаем предмет в инвентарь только если:
+    // 1. Игра не завершена (выход до окончания) или
+    // 2. Игра завершена и игрок победил
+    if ((currentRoom.status !== "finished") || 
+        (currentRoom.status === "finished" && currentRoom.winner === user.username)) {
       const stakeItemId = currentRoom.stakes[player.id];
       if (stakeItemId) {
         const item = GameService.getItemById(stakeItemId);
@@ -250,6 +253,8 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
           addItem(item);
         }
       }
+    } else {
+      console.log("Предмет сгорает, так как игрок проиграл");
     }
     
     // Если игрок был один или с ботом, удаляем комнату
@@ -356,13 +361,16 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
       lastActivity: Date.now()
     };
     
-    // Если есть победитель, передаем все ставки победителю
+    // Если есть победитель (ТОЛЬКО пользователь), передаем все ставки победителю
     if (winner && updatedRoom.winner && updatedRoom.winner === user.username) {
       // Получаем все предметы из ставок и добавляем их победителю
       Object.values(updatedRoom.stakes).forEach(itemId => {
-        const item = GameService.getItemById(itemId);
-        if (item) {
-          addItem(item);
+        // Не добавляем предметы бота в инвентарь игрока
+        if (itemId !== BotService.BOT_STAKE_ITEM_ID) {
+          const item = GameService.getItemById(itemId);
+          if (item) {
+            addItem(item);
+          }
         }
       });
     }
