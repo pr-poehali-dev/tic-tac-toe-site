@@ -1,63 +1,68 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Routes, Route } from "react-router-dom";
-import Header from "./components/Header";
+import { useState } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import { GameProvider } from "./context/GameContext";
+import { Toaster } from "./components/ui/toaster";
+import { ThemeProvider } from "./components/ui/theme-provider";
+import ProtectedRoute from "./components/ProtectedRoute";
+
+// Pages
 import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import TicTacToe from "./pages/TicTacToe";
 import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
-import InventoryPage from "./pages/InventoryPage";
+import Register from "./pages/Register";
+import TicTacToe from "./pages/TicTacToe";
+import Admin from "./pages/Admin";
+import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import BubbleBackground from "./components/BubbleBackground";
 
-// Обновление заголовка сайта
-document.title = "SVOIKIT - свой кит, твои игры";
-
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <Header />
-      <BubbleBackground />
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/game" element={
-          <ProtectedRoute>
-            <TicTacToe />
-          </ProtectedRoute>
-        } />
-        <Route path="/inventory" element={
-          <ProtectedRoute>
-            <InventoryPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/profile" element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin" element={
-          <ProtectedRoute requireAdmin={true}>
-            <Admin />
-          </ProtectedRoute>
-        } />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/system-admin" element={<AdminLogin />} />
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <ThemeProvider defaultTheme="light" storageKey="theme">
+      <AuthProvider>
+        <GameProvider>
+          <Toaster />
+          <Router>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/admin-login" element={<AdminLogin />} />
+              <Route path="/register" element={<Register />} />
+              
+              {/* Защищенные маршруты */}
+              <Route
+                path="/tic-tac-toe"
+                element={
+                  <ProtectedRoute>
+                    <TicTacToe />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute adminRequired>
+                    <Admin />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+              
+              {/* 404 страница */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Router>
+        </GameProvider>
+      </AuthProvider>
+    </ThemeProvider>
+  );
+}
 
 export default App;

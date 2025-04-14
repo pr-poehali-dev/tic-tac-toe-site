@@ -4,29 +4,26 @@ import { useAuth } from "@/context/AuthContext";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requireAdmin?: boolean;
+  adminRequired?: boolean;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
-  requireAdmin = false 
+  adminRequired = false 
 }) => {
-  const { isAuthenticated, user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const location = useLocation();
 
-  // Проверяем аутентификацию
   if (!isAuthenticated) {
-    // Перенаправляем на страницу логина, сохраняя текущий URL для возврата после авторизации
+    // Если пользователь не авторизован, перенаправляем на страницу входа
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Если требуются права администратора, проверяем роль
-  if (requireAdmin && user?.role !== 'admin') {
-    // Перенаправляем на главную страницу, если у пользователя нет прав администратора
+  if (adminRequired && user?.role !== 'admin') {
+    // Если требуются права администратора, но у пользователя их нет
     return <Navigate to="/" replace />;
   }
 
-  // Если все проверки пройдены, показываем защищенный контент
   return <>{children}</>;
 };
 
