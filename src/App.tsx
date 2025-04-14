@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Header from "./components/Header";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import TicTacToe from "./pages/TicTacToe";
@@ -17,9 +18,10 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <Header />
         <Routes>
-          <Route path="/" element={<TicTacToe />} />
-          <Route path="/index" element={<Index />} />
+          <Route path="/" element={<Index />} />
+          <Route path="/game" element={<TicTacToe />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

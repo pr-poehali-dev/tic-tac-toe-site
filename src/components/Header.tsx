@@ -15,11 +15,14 @@ const Header: React.FC = () => {
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
           <Link to="/" className="text-xl font-bold">
-            🎮 Игры
+            🎮 Крестики-нолики
           </Link>
           <nav className="flex items-center gap-4">
             <Link to="/" className="text-sm font-medium hover:underline">
-              Крестики-нолики
+              Главная
+            </Link>
+            <Link to="/game" className="text-sm font-medium hover:underline">
+              Играть
             </Link>
           </nav>
         </div>
