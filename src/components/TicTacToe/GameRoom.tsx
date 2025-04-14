@@ -140,6 +140,13 @@ const GameRoom: React.FC = () => {
           
           <div className="text-center mb-4">
             <p className="text-xl font-bold">{gameStatus}</p>
+            {currentRoom.status === "finished" && currentRoom.winner !== user?.username && !isSpectating && (
+              <div className="mt-2 flex items-center justify-center gap-2 text-red-500">
+                <Flame className="h-5 w-5" />
+                <p className="font-semibold">Ваш предмет сгорел и не будет возвращен!</p>
+                <Flame className="h-5 w-5" />
+              </div>
+            )}
           </div>
           
           <div className="flex justify-center mb-4">
@@ -170,13 +177,19 @@ const GameRoom: React.FC = () => {
                 В этой комнате играет бот
               </p>
             )}
-            
-            {currentRoom.status === "finished" && currentRoom.winner !== user?.username && (
-              <div className="mt-2 text-red-500 flex items-center">
-                <Flame className="mr-1 h-4 w-4" />
-                <p>При проигрыше ваш предмет сгорает!</p>
-              </div>
-            )}
+          </div>
+          
+          {/* Блок с информацией о ставках */}
+          <div className="mt-4 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md">
+            <h3 className="text-sm font-bold text-red-700 dark:text-red-400 flex items-center">
+              <Flame className="h-4 w-4 mr-1" /> Правила игры на ставку:
+            </h3>
+            <ul className="list-disc list-inside text-xs text-red-600 dark:text-red-400 mt-1">
+              <li>При выигрыше вы сохраняете свой предмет</li>
+              <li>При проигрыше ваш предмет сгорает полностью</li>
+              <li>При ничьей все предметы возвращаются владельцам</li>
+              <li>Выход до завершения игры сохраняет ваш предмет</li>
+            </ul>
           </div>
         </CardContent>
         
