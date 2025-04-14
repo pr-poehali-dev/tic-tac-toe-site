@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "./components/ui/toaster";
 import { ThemeProvider } from "./components/ui/theme-provider";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -22,6 +22,9 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/register" element={<Register />} />
+        
+        {/* Редирект с /game на /tic-tac-toe */}
+        <Route path="/game" element={<Navigate to="/tic-tac-toe" replace />} />
         
         {/* Защищенные маршруты */}
         <Route

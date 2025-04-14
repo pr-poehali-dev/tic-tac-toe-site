@@ -35,7 +35,7 @@ const Index: React.FC = () => {
           </p>
           
           {isAuthenticated ? (
-            <Link to="/game">
+            <Link to="/tic-tac-toe">
               <Button size="lg" className="w-full ocean-button">
                 Начать игру
               </Button>
