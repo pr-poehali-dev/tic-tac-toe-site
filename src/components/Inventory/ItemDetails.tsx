@@ -2,7 +2,6 @@ import React from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useInventory } from "@/context/InventoryContext";
-import { InventoryItem, Item } from "@/types/inventory";
 import { Badge } from "@/components/ui/badge";
 
 interface ItemDetailsProps {
@@ -11,7 +10,7 @@ interface ItemDetailsProps {
 }
 
 export const ItemDetails: React.FC<ItemDetailsProps> = ({ itemId, onClose }) => {
-  const { getItem, useItem, equipItem, dropItem } = useInventory();
+  const { getItem, useItem, dropItem } = useInventory();
   
   const inventoryItem = getItem(itemId);
   
@@ -19,7 +18,7 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ itemId, onClose }) => 
     return null;
   }
   
-  const { item, quantity, equipped } = inventoryItem;
+  const { item, quantity } = inventoryItem;
   
   const getRarityColor = (rarity: string) => {
     switch (rarity) {
@@ -34,10 +33,6 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ itemId, onClose }) => 
   
   const handleUse = () => {
     useItem(itemId);
-  };
-  
-  const handleEquip = () => {
-    equipItem(itemId, !equipped);
   };
   
   const handleDrop = () => {
@@ -60,9 +55,6 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ itemId, onClose }) => 
                item.rarity === 'epic' ? 'Эпический' : 'Легендарный'} предмет
             </p>
           </div>
-          {equipped && (
-            <Badge className="bg-blue-100 text-blue-800 border-blue-300">Экипировано</Badge>
-          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -132,15 +124,6 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ itemId, onClose }) => 
               Использовать
             </Button>
           )}
-          {(item.category === 'weapon' || item.category === 'armor') && (
-            <Button
-              size="sm"
-              variant={equipped ? "destructive" : "default"}
-              onClick={handleEquip}
-            >
-              {equipped ? 'Снять' : 'Экипировать'}
-            </Button>
-          )}
           <Button
             size="sm"
             variant="destructive"
@@ -154,5 +137,4 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ itemId, onClose }) => 
   );
 };
 
-// Добавляем и дефолтный экспорт, чтобы поддерживать оба варианта импорта
 export default ItemDetails;
