@@ -8,6 +8,7 @@ import { ru } from "date-fns/locale";
 import { Copy, Bot, Flame } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import Board from "./Board";
+import UnderwaterIcon from "@/components/UnderwaterIcon";
 
 const GameRoom: React.FC = () => {
   const { currentRoom, leaveRoom, makeMove, isSpectating } = useGame();
@@ -72,16 +73,19 @@ const GameRoom: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Card className="overflow-hidden">
+      <Card className="underwater-card overflow-hidden">
         <CardHeader className="pb-2">
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle>Игровая комната</CardTitle>
+              <CardTitle className="flex items-center">
+                <UnderwaterIcon emoji="🎮" className="mr-2" />
+                Подводная игра
+              </CardTitle>
               <CardDescription>
                 Создана {formatDistanceToNow(currentRoom.createdAt, { addSuffix: true, locale: ru })}
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2 bg-muted p-2 rounded">
+            <div className="flex items-center gap-2 bg-ocean-50/70 dark:bg-ocean-800/70 p-2 rounded">
               <span className="text-sm font-medium">Код: {currentRoom.roomCode}</span>
               <Button variant="ghost" size="icon" onClick={copyRoomCode} className="h-6 w-6">
                 <Copy className="h-3 w-3" />
@@ -92,7 +96,7 @@ const GameRoom: React.FC = () => {
         
         <CardContent className="pb-4">
           {isSpectating && (
-            <div className="bg-yellow-100 dark:bg-yellow-950 p-2 rounded mb-4 text-sm">
+            <div className="bg-amber-50/70 dark:bg-amber-900/70 p-2 rounded mb-4 text-sm">
               <p className="font-medium">Режим наблюдения (только для администраторов)</p>
             </div>
           )}
@@ -101,15 +105,22 @@ const GameRoom: React.FC = () => {
             <div>
               {currentRoom.players[0] && (
                 <div className="flex items-center">
-                  <p className="font-medium">{currentRoom.players[0].username} ({currentRoom.players[0].symbol})</p>
-                  {currentRoom.players[0].isBot && (
-                    <Bot className="ml-1 h-4 w-4 text-blue-500" title="Бот" />
-                  )}
-                  {currentRoom.status === "playing" && (
-                    <p className="text-sm text-muted-foreground ml-2">
-                      {currentRoom.currentTurn === currentRoom.players[0].id ? "Сейчас ходит" : ""}
-                    </p>
-                  )}
+                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-ocean-200 dark:bg-ocean-700 text-ocean-700 dark:text-ocean-200 mr-2">
+                    {currentRoom.players[0].symbol}
+                  </div>
+                  <div>
+                    <p className="font-medium">{currentRoom.players[0].username}</p>
+                    <div className="flex items-center">
+                      {currentRoom.players[0].isBot && (
+                        <Bot className="mr-1 h-4 w-4 text-ocean-500" title="Бот" />
+                      )}
+                      {currentRoom.status === "playing" && (
+                        <p className="text-xs text-muted-foreground">
+                          {currentRoom.currentTurn === currentRoom.players[0].id ? "Сейчас ходит" : ""}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -117,22 +128,34 @@ const GameRoom: React.FC = () => {
             <div className="text-right">
               {currentRoom.players[1] ? (
                 <div className="flex items-center justify-end">
-                  {currentRoom.status === "playing" && (
-                    <p className="text-sm text-muted-foreground mr-2">
-                      {currentRoom.currentTurn === currentRoom.players[1].id ? "Сейчас ходит" : ""}
-                    </p>
-                  )}
-                  <p className="font-medium">{currentRoom.players[1].username} ({currentRoom.players[1].symbol})</p>
-                  {currentRoom.players[1].isBot && (
-                    <Bot className="ml-1 h-4 w-4 text-blue-500" title="Бот" />
-                  )}
+                  <div className="text-right">
+                    <p className="font-medium">{currentRoom.players[1].username}</p>
+                    <div className="flex items-center justify-end">
+                      {currentRoom.status === "playing" && (
+                        <p className="text-xs text-muted-foreground">
+                          {currentRoom.currentTurn === currentRoom.players[1].id ? "Сейчас ходит" : ""}
+                        </p>
+                      )}
+                      {currentRoom.players[1].isBot && (
+                        <Bot className="ml-1 h-4 w-4 text-ocean-500" title="Бот" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-ocean-200 dark:bg-ocean-700 text-ocean-700 dark:text-ocean-200 ml-2">
+                    {currentRoom.players[1].symbol}
+                  </div>
                 </div>
               ) : (
                 <div className="flex items-center justify-end">
-                  <p className="text-sm text-muted-foreground">Ожидание второго игрока...</p>
-                  <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 px-2 py-0.5 rounded-full">
-                    Бот подключится через 1 минуту
-                  </span>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Ожидание второго игрока...</p>
+                    <span className="text-xs bg-yellow-100/70 text-yellow-800 dark:bg-yellow-900/70 dark:text-yellow-200 px-2 py-0.5 rounded-full">
+                      Бот подключится через 1 минуту
+                    </span>
+                  </div>
+                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-muted ml-2">
+                    ?
+                  </div>
                 </div>
               )}
             </div>
@@ -141,7 +164,7 @@ const GameRoom: React.FC = () => {
           <div className="text-center mb-4">
             <p className="text-xl font-bold">{gameStatus}</p>
             {currentRoom.status === "finished" && currentRoom.winner !== user?.username && !isSpectating && (
-              <div className="mt-2 flex items-center justify-center gap-2 text-red-500">
+              <div className="mt-2 flex items-center justify-center gap-2 text-coral-500">
                 <Flame className="h-5 w-5" />
                 <p className="font-semibold">Ваш предмет сгорел и не будет возвращен!</p>
                 <Flame className="h-5 w-5" />
@@ -172,7 +195,7 @@ const GameRoom: React.FC = () => {
             <p>ID комнаты: {currentRoom.id}</p>
             <p>Последняя активность: {formatDistanceToNow(currentRoom.lastActivity, { addSuffix: true, locale: ru })}</p>
             {currentRoom.players.some(p => p.isBot) && (
-              <p className="mt-2 text-blue-500 flex items-center">
+              <p className="mt-2 text-ocean-500 flex items-center">
                 <Bot className="mr-1 h-4 w-4" /> 
                 В этой комнате играет бот
               </p>
@@ -180,11 +203,11 @@ const GameRoom: React.FC = () => {
           </div>
           
           {/* Блок с информацией о ставках */}
-          <div className="mt-4 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md">
-            <h3 className="text-sm font-bold text-red-700 dark:text-red-400 flex items-center">
+          <div className="mt-4 p-3 bg-coral-50/70 dark:bg-coral-950/70 border border-coral-200 dark:border-coral-800 rounded-md">
+            <h3 className="text-sm font-bold text-coral-700 dark:text-coral-400 flex items-center">
               <Flame className="h-4 w-4 mr-1" /> Правила игры на ставку:
             </h3>
-            <ul className="list-disc list-inside text-xs text-red-600 dark:text-red-400 mt-1">
+            <ul className="list-disc list-inside text-xs text-coral-600 dark:text-coral-400 mt-1">
               <li>При выигрыше вы сохраняете свой предмет</li>
               <li>При проигрыше ваш предмет сгорает полностью</li>
               <li>При ничьей все предметы возвращаются владельцам</li>
@@ -194,7 +217,7 @@ const GameRoom: React.FC = () => {
         </CardContent>
         
         <CardFooter>
-          <Button onClick={leaveRoom} className="w-full" variant="outline">
+          <Button onClick={leaveRoom} className="w-full" variant={isSpectating ? "outline" : "default"}>
             {isSpectating ? "Вернуться к списку комнат" : (currentRoom.status === "finished" ? "Вернуться в лобби" : "Покинуть игру")}
           </Button>
         </CardFooter>

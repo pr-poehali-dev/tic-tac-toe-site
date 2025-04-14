@@ -150,23 +150,33 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
   const joinRoom = useCallback((roomId: string, stakeItemId: string) => {
     if (!user) return;
     
-    // Проверяем, не состоит ли уже пользователь в какой-либо комнате
-    const userInRoom = availableRooms.some(room => 
-      room.players.some(player => player.username === user.username)
-    );
-    
-    if (userInRoom) {
-      console.warn("Вы уже участвуете в другой игре");
+    // Находим комнату по ID
+    const room = getRoomById(roomId);
+    if (!room) {
+      console.warn("Комната не найдена");
       return;
     }
     
-    const room = getRoomById(roomId);
-    if (!room || room.status !== "waiting" || room.players.length >= 2) return;
+    // Проверяем, что комната ждет игроков и в ней есть место
+    if (room.status !== "waiting" || room.players.length >= 2) {
+      console.warn("Комната недоступна для присоединения");
+      return;
+    }
     
     // Проверяем, не пытается ли игрок присоединиться дважды к одной комнате
     const isAlreadyInRoom = room.players.some(player => player.username === user.username);
     if (isAlreadyInRoom) {
       console.warn("Вы уже в этой комнате");
+      return;
+    }
+    
+    // Проверяем, не состоит ли игрок в другой комнате
+    const userInOtherRoom = availableRooms.some(r => 
+      r.id !== roomId && r.players.some(player => player.username === user.username)
+    );
+    
+    if (userInOtherRoom) {
+      console.warn("Вы уже участвуете в другой игре");
       return;
     }
     
@@ -215,12 +225,14 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
    * Позволяет администратору наблюдать за игрой
    */
   const spectateRoom = useCallback((roomId: string) => {
+    if (!user || user.role !== 'admin') return;
+    
     const room = getRoomById(roomId);
     if (!room) return;
     
     setCurrentRoom(room);
     setIsSpectating(true);
-  }, [getRoomById]);
+  }, [getRoomById, user]);
 
   /**
    * Выходит из текущей комнаты
@@ -245,10 +257,13 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
     // 1. Игра еще не завершена (игрок выходит во время игры)
     // ИЛИ
     // 2. Игра завершена И игрок является победителем
+    // ИЛИ
+    // 3. Игра завершена И это ничья
     if (currentRoom.status !== "finished" || 
-        (currentRoom.status === "finished" && currentRoom.winner === user.username)) {
+        (currentRoom.status === "finished" && 
+         (currentRoom.winner === user.username || !currentRoom.winner))) {
       
-      console.log("Возвращаем предмет в инвентарь игрока (выход или победа)");
+      console.log("Возвращаем предмет в инвентарь игрока (выход или победа/ничья)");
       const stakeItemId = currentRoom.stakes[player.id];
       
       if (stakeItemId) {
