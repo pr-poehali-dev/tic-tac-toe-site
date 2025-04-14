@@ -11,7 +11,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
-import Inventory from "./pages/Inventory";
+import InventoryPage from "./pages/InventoryPage";
 import Profile from "./pages/Profile";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
@@ -32,7 +32,7 @@ const App = () => (
         } />
         <Route path="/inventory" element={
           <ProtectedRoute>
-            <Inventory />
+            <InventoryPage />
           </ProtectedRoute>
         } />
         <Route path="/profile" element={
