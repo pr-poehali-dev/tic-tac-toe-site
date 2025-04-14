@@ -2,7 +2,8 @@ import { useState, useCallback } from "react";
 import { GameRoom, Player } from "@/types/game";
 import { calculateWinner, generateId, generateRoomCode, createInitialBoard, isBoardFull } from "@/utils/game";
 import { GameService } from "@/services/gameService";
-import { User } from "@/types/auth"; // Предполагается что тип User определен в types/auth.ts
+import { User } from "@/types/auth";
+import { useInventory } from "@/context/InventoryContext";
 
 interface GameActionsReturn {
   availableRooms: GameRoom[];
@@ -11,8 +12,8 @@ interface GameActionsReturn {
   setCurrentRoom: React.Dispatch<React.SetStateAction<GameRoom | null>>;
   isSpectating: boolean;
   setIsSpectating: React.Dispatch<React.SetStateAction<boolean>>;
-  createRoom: () => void;
-  joinRoom: (roomId: string) => void;
+  createRoom: (stakeItemId: string) => void;
+  joinRoom: (roomId: string, stakeItemId: string) => void;
   leaveRoom: () => void;
   makeMove: (index: number) => void;
   spectateRoom: (roomId: string) => void;
@@ -27,6 +28,7 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
   const [availableRooms, setAvailableRooms] = useState<GameRoom[]>([]);
   const [currentRoom, setCurrentRoom] = useState<GameRoom | null>(null);
   const [isSpectating, setIsSpectating] = useState<boolean>(false);
+  const { removeItem, addItem, getItem } = useInventory();
 
   /**
    * Находит комнату по ID или коду
@@ -40,7 +42,7 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
   /**
    * Создает новую игровую комнату
    */
-  const createRoom = useCallback(() => {
+  const createRoom = useCallback((stakeItemId: string) => {
     if (!user) return;
     
     // Проверяем, не состоит ли уже пользователь в какой-либо комнате
@@ -53,6 +55,19 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
       return;
     }
     
+    // Проверяем, существует ли предмет в инвентаре
+    const stakeItem = getItem(stakeItemId);
+    if (!stakeItem) {
+      console.warn("Выбранный предмет не найден в инвентаре");
+      return;
+    }
+    
+    // Удаляем предмет из инвентаря игрока
+    if (!removeItem(stakeItemId, 1)) {
+      console.warn("Не удалось удалить предмет из инвентаря");
+      return;
+    }
+    
     const playerId = generateId();
     const roomId = generateId();
     const roomCode = generateRoomCode();
@@ -60,7 +75,8 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
     const player: Player = {
       id: playerId,
       username: user.username,
-      symbol: "Х"
+      symbol: "Х",
+      stakeItemId
     };
     
     const newRoom: GameRoom = {
@@ -73,7 +89,10 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
       winner: null,
       board: createInitialBoard(),
       createdAt: Date.now(),
-      lastActivity: Date.now()
+      lastActivity: Date.now(),
+      stakes: {
+        [playerId]: stakeItemId
+      }
     };
     
     // В реальном приложении здесь был бы вызов API
@@ -82,12 +101,12 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
     setAvailableRooms(prev => [...prev, newRoom]);
     setCurrentRoom(newRoom);
     setIsSpectating(false);
-  }, [user, availableRooms]);
+  }, [user, availableRooms, getItem, removeItem]);
 
   /**
    * Присоединяется к существующей комнате
    */
-  const joinRoom = useCallback((roomId: string) => {
+  const joinRoom = useCallback((roomId: string, stakeItemId: string) => {
     if (!user) return;
     
     // Проверяем, не состоит ли уже пользователь в какой-либо комнате
@@ -110,19 +129,37 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
       return;
     }
     
+    // Проверяем, существует ли предмет в инвентаре
+    const stakeItem = getItem(stakeItemId);
+    if (!stakeItem) {
+      console.warn("Выбранный предмет не найден в инвентаре");
+      return;
+    }
+    
+    // Удаляем предмет из инвентаря игрока
+    if (!removeItem(stakeItemId, 1)) {
+      console.warn("Не удалось удалить предмет из инвентаря");
+      return;
+    }
+    
     const playerId = generateId();
     
     const newPlayer: Player = {
       id: playerId,
       username: user.username,
-      symbol: "О"
+      symbol: "О",
+      stakeItemId
     };
     
     const updatedRoom = {
       ...room,
       players: [...room.players, newPlayer],
       status: "playing",
-      lastActivity: Date.now()
+      lastActivity: Date.now(),
+      stakes: {
+        ...room.stakes,
+        [playerId]: stakeItemId
+      }
     };
     
     // В реальном приложении здесь был бы вызов API
@@ -134,7 +171,7 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
     
     setCurrentRoom(updatedRoom);
     setIsSpectating(false);
-  }, [user, availableRooms, getRoomById]);
+  }, [user, availableRooms, getRoomById, getItem, removeItem]);
 
   /**
    * Позволяет администратору наблюдать за игрой
@@ -162,6 +199,24 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
     
     if (!user) return;
     
+    // Находим игрока
+    const player = currentRoom.players.find(p => p.username === user.username);
+    if (!player) return;
+    
+    // Возвращаем предмет в инвентарь, если игра еще не завершена
+    if (currentRoom.status !== "finished" && player.stakeItemId) {
+      const itemId = player.stakeItemId;
+      // Получаем предмет из stakes комнаты
+      const stakeItemId = currentRoom.stakes[player.id];
+      if (stakeItemId) {
+        // Получаем информацию о предмете из GameService
+        const item = GameService.getItemById(stakeItemId);
+        if (item) {
+          addItem(item);
+        }
+      }
+    }
+    
     // Если игрок был один, удаляем комнату
     if (currentRoom.players.length === 1) {
       // В реальном приложении здесь был бы вызов API
@@ -177,6 +232,13 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
         lastActivity: Date.now()
       };
       
+      // Удаляем ставку игрока из комнаты
+      if (player && player.id in updatedRoom.stakes) {
+        const newStakes = {...updatedRoom.stakes};
+        delete newStakes[player.id];
+        updatedRoom.stakes = newStakes;
+      }
+      
       // В реальном приложении здесь был бы вызов API
       // GameService.updateRoom(updatedRoom).then(...)
       
@@ -187,7 +249,7 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
     
     setCurrentRoom(null);
     setIsSpectating(false);
-  }, [currentRoom, isSpectating, user]);
+  }, [currentRoom, isSpectating, user, addItem]);
 
   /**
    * Делает ход в игре
@@ -225,6 +287,17 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
       lastActivity: Date.now()
     };
     
+    // Если есть победитель, передаем все ставки победителю
+    if (winner && updatedRoom.winner && updatedRoom.winner === user.username) {
+      // Получаем все предметы из ставок и добавляем их победителю
+      Object.values(updatedRoom.stakes).forEach(itemId => {
+        const item = GameService.getItemById(itemId);
+        if (item) {
+          addItem(item);
+        }
+      });
+    }
+    
     // В реальном приложении здесь был бы вызов API
     // GameService.updateRoom(updatedRoom).then(...)
     
@@ -233,7 +306,7 @@ export const useGameActions = (user: User | null): GameActionsReturn => {
     );
     
     setCurrentRoom(updatedRoom);
-  }, [currentRoom, isSpectating, user]);
+  }, [currentRoom, isSpectating, user, addItem]);
 
   return {
     availableRooms,

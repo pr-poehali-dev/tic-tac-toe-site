@@ -1,80 +1,70 @@
 import { GameRoom } from "@/types/game";
+import { Item } from "@/types/inventory";
+import { generateId } from "@/utils/game";
 
-/**
- * Сервис для работы с игровыми данными
- * В реальном приложении здесь были бы API-запросы к серверу
- */
+// Временное хранилище предметов
+import { ITEMS_DATA } from "./itemsData";
+
 export class GameService {
-  /**
-   * Получает список доступных комнат
-   * @returns Промис с массивом комнат
-   */
+  // Имитация получения комнат с сервера
   static async fetchRooms(): Promise<GameRoom[]> {
-    // Имитация API-запроса
     return new Promise((resolve) => {
+      // Имитация задержки сети
       setTimeout(() => {
-        const mockRooms: GameRoom[] = [
-          {
-            id: "123456789",
-            roomCode: "ABC123",
-            creatorId: "987654321",
-            players: [{
-              id: "987654321",
-              username: "Игрок 1",
-              symbol: "Х"
-            }],
-            currentTurn: "987654321",
-            status: "waiting",
-            winner: null,
-            board: Array(9).fill(null),
-            createdAt: Date.now() - 60000,
-            lastActivity: Date.now() - 50000
-          }
-        ];
-        resolve(mockRooms);
-      }, 300);
+        // Возвращаем пустой массив, так как комнаты будут создаваться в процессе игры
+        resolve([]);
+      }, 500);
     });
   }
-
-  /**
-   * Создает новую комнату на сервере
-   * @param room - Данные новой комнаты
-   * @returns Промис с созданной комнатой
-   */
-  static async createRoom(room: GameRoom): Promise<GameRoom> {
-    // Имитация API-запроса
+  
+  // Имитация получения комнаты по ID
+  static async fetchRoomById(roomId: string): Promise<GameRoom | null> {
     return new Promise((resolve) => {
       setTimeout(() => {
-        resolve(room);
+        // В реальном приложении здесь был бы запрос к серверу
+        // В демо версии просто возвращаем null, так как комнаты хранятся в состоянии на клиенте
+        resolve(null);
       }, 200);
     });
   }
-
-  /**
-   * Обновляет комнату на сервере
-   * @param room - Обновленные данные комнаты
-   * @returns Промис с обновленной комнатой
-   */
-  static async updateRoom(room: GameRoom): Promise<GameRoom> {
-    // Имитация API-запроса
+  
+  // Имитация создания комнаты
+  static async createRoom(room: GameRoom): Promise<GameRoom> {
     return new Promise((resolve) => {
       setTimeout(() => {
-        resolve(room);
-      }, 150);
+        // В реальном приложении здесь был бы запрос к серверу для сохранения комнаты
+        resolve({
+          ...room,
+          id: room.id || generateId()
+        });
+      }, 300);
     });
   }
-
-  /**
-   * Удаляет комнату с сервера
-   * @param roomId - ID комнаты для удаления
-   * @returns Промис, возвращающий успех операции
-   */
-  static async deleteRoom(roomId: string): Promise<boolean> {
-    // Имитация API-запроса
+  
+  // Имитация обновления комнаты
+  static async updateRoom(room: GameRoom): Promise<GameRoom> {
     return new Promise((resolve) => {
       setTimeout(() => {
-        resolve(true);
-      }, 150);
+        // В реальном приложении здесь был бы запрос к серверу для обновления комнаты
+        resolve(room);
+      }, 300);
     });
+  }
+  
+  // Имитация удаления комнаты
+  static async deleteRoom(roomId: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // В реальном приложении здесь был бы запрос к серверу для удаления комнаты
+        resolve(true);
+      }, 300);
+    });
+  }
+  
+  // Имитация получения предмета по ID
+  static getItemById(itemId: string): Item | null {
+    // Ищем предмет в нашем временном хранилище
+    const item = ITEMS_DATA.find(item => item.id === itemId);
+    return item || null;
   }
 }

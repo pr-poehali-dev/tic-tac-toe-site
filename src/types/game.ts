@@ -1,9 +1,11 @@
 // Типы для игры крестики-нолики
+import { Item } from "./inventory";
 
 export interface Player {
   id: string;
   username: string;
   symbol: "Х" | "О";
+  stakeItemId?: string; // ID предмета, поставленного на кон
 }
 
 export interface GameRoom {
@@ -17,6 +19,7 @@ export interface GameRoom {
   board: Array<string | null>;
   createdAt: number;
   lastActivity: number;
+  stakes: { [playerId: string]: string }; // Карта ставок: ключ - ID игрока, значение - ID предмета
 }
 
 export type GameStatus = "waiting" | "playing" | "finished";
@@ -24,8 +27,8 @@ export type GameStatus = "waiting" | "playing" | "finished";
 export interface GameContextType {
   availableRooms: GameRoom[];
   currentRoom: GameRoom | null;
-  joinRoom: (roomId: string) => void;
-  createRoom: () => void;
+  joinRoom: (roomId: string, stakeItemId: string) => void;
+  createRoom: (stakeItemId: string) => void;
   leaveRoom: () => void;
   makeMove: (index: number) => void;
   getRoomById: (roomId: string) => GameRoom | undefined;
