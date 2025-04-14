@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { User } from "lucide-react";
+import { User, Package } from "lucide-react";
 
 const Header: React.FC = () => {
   const location = useLocation();
@@ -42,9 +42,6 @@ const Header: React.FC = () => {
                 <Link to="/game" className="text-sm font-medium hover:underline">
                   Играть
                 </Link>
-                <Link to="/inventory" className="text-sm font-medium hover:underline">
-                  Инвентарь
-                </Link>
               </>
             )}
           </nav>
@@ -68,6 +65,11 @@ const Header: React.FC = () => {
                 <DropdownMenuItem asChild>
                   <Link to="/profile" className="cursor-pointer flex items-center">
                     <User className="mr-2 h-4 w-4" /> Профиль
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/inventory" className="cursor-pointer flex items-center">
+                    <Package className="mr-2 h-4 w-4" /> Инвентарь
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={logout}>
