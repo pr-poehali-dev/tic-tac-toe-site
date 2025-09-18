@@ -2,14 +2,15 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 
 // Типы данных пользователя
 interface User {
-  id: string;
+  id: number;
   username: string;
-  email: string;
-  role: 'user' | 'admin'; // Добавлен тип роли
+  login: string;
+  role: 'user' | 'admin';
+  created_at?: string;
 }
 
 interface AuthCredentials {
-  username: string;
+  login: string;
   password: string;
 }
 
@@ -35,68 +36,102 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
-  // Имитация проверки сохраненного токена
+  const authUrl = 'https://functions.poehali.dev/5d68be3f-eff8-48bb-bde1-620d59e59f34';
+
+  // Проверка сохраненного пользователя
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
+    const storedUser = localStorage.getItem("currentUser");
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
+        // Создаем пользователя с нужной структурой
+        const user: User = {
+          id: parsedUser.id,
+          username: parsedUser.login,
+          login: parsedUser.login,
+          role: parsedUser.login === 'admin' ? 'admin' : 'user',
+          created_at: parsedUser.created_at
+        };
+        setUser(user);
         setIsAuthenticated(true);
       } catch (error) {
-        localStorage.removeItem("user");
+        localStorage.removeItem("currentUser");
       }
     }
   }, []);
 
-  // Имитация API аутентификации
+  // Вход через API
   const login = async (credentials: AuthCredentials): Promise<boolean> => {
-    // Для тестирования: имитация входа как администратор с особыми учетными данными
-    const isAdmin = credentials.username === "admin" && credentials.password === "admin123";
-    
-    // Генерируем числовой ID пользователя
-    const userId = Math.floor(100000000 + Math.random() * 900000000).toString();
-    
-    // Для примера: успешная авторизация любыми данными
-    const user = {
-      id: userId,
-      username: credentials.username,
-      email: `${credentials.username.toLowerCase()}@example.com`,
-      role: isAdmin ? 'admin' as const : 'user' as const
-    };
+    try {
+      const response = await fetch(authUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'login',
+          login: credentials.login,
+          password: credentials.password
+        })
+      });
 
-    // Сохраняем пользователя
-    setUser(user);
-    setIsAuthenticated(true);
-    localStorage.setItem("user", JSON.stringify(user));
-    
-    return true;
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Создаем пользователя с нужной структурой
+        const user: User = {
+          id: data.user.id,
+          username: data.user.login,
+          login: data.user.login,
+          role: data.user.login === 'admin' ? 'admin' : 'user',
+          created_at: data.user.created_at
+        };
+
+        setUser(user);
+        setIsAuthenticated(true);
+        localStorage.setItem("currentUser", JSON.stringify(data.user));
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Ошибка входа:', error);
+      return false;
+    }
   };
 
+  // Регистрация через API
   const register = async (userData: AuthCredentials): Promise<boolean> => {
-    // Генерируем числовой ID пользователя
-    const userId = Math.floor(100000000 + Math.random() * 900000000).toString();
-    
-    // Для примера: успешная регистрация любыми данными
-    const user = {
-      id: userId,
-      username: userData.username,
-      email: `${userData.username.toLowerCase()}@example.com`,
-      role: 'user' as const
-    };
+    try {
+      const response = await fetch(authUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'register',
+          login: userData.login,
+          password: userData.password
+        })
+      });
 
-    // Сохраняем пользователя
-    setUser(user);
-    setIsAuthenticated(true);
-    localStorage.setItem("user", JSON.stringify(user));
-    
-    return true;
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        return true; // Регистрация прошла успешно, но не входим автоматически
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Ошибка регистрации:', error);
+      return false;
+    }
   };
 
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
-    localStorage.removeItem("user");
+    localStorage.removeItem("currentUser");
   };
 
   return (

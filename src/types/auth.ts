@@ -8,17 +8,18 @@ export type UserRole = 'user' | 'admin';
  * Тип пользователя
  */
 export interface User {
-  id: string;
+  id: number;
   username: string;
-  email: string;
+  login: string;
   role: UserRole;
+  created_at?: string;
 }
 
 /**
  * Данные для авторизации
  */
 export interface AuthCredentials {
-  username: string;
+  login: string;
   password: string;
 }
 

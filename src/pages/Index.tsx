@@ -1,12 +1,24 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import BubbleBackground from "@/components/BubbleBackground";
 import UnderwaterIcon from "@/components/UnderwaterIcon";
+import AuthForm from "@/components/Auth/AuthForm";
 
 const Index: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const [showAuthForm, setShowAuthForm] = useState(false);
+
+  const handleAuthSuccess = (userData: any) => {
+    setShowAuthForm(false);
+    // Пользователь автоматически будет обновлен через AuthContext
+  };
+
+  // Если показываем форму аутентификации, рендерим только её
+  if (showAuthForm) {
+    return <AuthForm onSuccess={handleAuthSuccess} />;
+  }
 
   return (
     <>
@@ -45,18 +57,12 @@ const Index: React.FC = () => {
               <p className="text-sm text-muted-foreground">
                 Войдите или зарегистрируйтесь, чтобы начать игру
               </p>
-              <div className="flex gap-4 justify-center">
-                <Link to="/login">
-                  <Button variant="outline" className="bg-white/50 dark:bg-ocean-700/50 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-ocean-600/70">
-                    Вход
-                  </Button>
-                </Link>
-                <Link to="/register">
-                  <Button className="coral-button">
-                    Регистрация
-                  </Button>
-                </Link>
-              </div>
+              <Button 
+                onClick={() => setShowAuthForm(true)}
+                className="w-full coral-button"
+              >
+                Вход / Регистрация
+              </Button>
             </div>
           )}
         </div>
