@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Loader2, User, Lock, Database } from 'lucide-react';
-import { saveUserToLocalDB, findUser, getLocalUsers } from '@/utils/localDatabase';
+
 import { registerUserAPI, loginUserAPI } from '@/utils/userAPI';
 
 interface SimpleAuthFormProps {
