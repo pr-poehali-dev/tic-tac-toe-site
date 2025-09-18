@@ -1,0 +1,32 @@
+{
+  "tests": [
+    {
+      "name": "Test user creation",
+      "method": "POST",
+      "body": {
+        "login": "test_api_user",
+        "password": "test123456"
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "success": true,
+        "message": "User created successfully"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Test duplicate user",
+      "method": "POST",
+      "body": {
+        "login": "test_api_user",
+        "password": "test123456"
+      },
+      "expectedStatus": 409,
+      "expectedBody": {
+        "success": false,
+        "error": "User with this login already exists"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Loader2, User, Lock, Database } from 'lucide-react';
 import { saveUserToLocalDB, findUser, getLocalUsers } from '@/utils/localDatabase';
+import { registerUserAPI, loginUserAPI } from '@/utils/userAPI';
 
 interface SimpleAuthFormProps {
   onSuccess: (user: any) => void;
@@ -41,13 +42,24 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
     console.log('Attempting login with:', loginData.login, loginData.password);
 
     try {
-      const user = findUser(loginData.login, loginData.password);
-
-      if (user) {
-        console.log('Login successful');
+      // Сначала пробуем через PostgreSQL API
+      const apiResult = await loginUserAPI(loginData.login, loginData.password);
+      
+      if (apiResult.success && apiResult.user) {
+        console.log('Login successful via PostgreSQL API');
         setSuccess('Вход выполнен успешно!');
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        onSuccess(user);
+        localStorage.setItem('currentUser', JSON.stringify(apiResult.user));
+        onSuccess(apiResult.user);
+        return;
+      }
+      
+      // Если API недоступно, пробуем локальную базу
+      const localUser = findUser(loginData.login, loginData.password);
+      if (localUser) {
+        console.log('Login successful via local database');
+        setSuccess('Вход выполнен успешно (локально)!');
+        localStorage.setItem('currentUser', JSON.stringify(localUser));
+        onSuccess(localUser);
       } else {
         setError('Неверный логин или пароль');
       }
@@ -97,27 +109,17 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
         return;
       }
 
-      // Сохраняем пользователя и в локальную базу и в PostgreSQL
+      // Регистрируем пользователя через PostgreSQL API
+      const apiResult = await registerUserAPI(registerData.login, registerData.password);
       
-      // 1. Сначала проверяем локально
-      const saveResult = saveUserToLocalDB(registerData.login, registerData.password);
-      if (!saveResult) {
-        setError('Пользователь с таким логином уже существует');
+      if (!apiResult.success) {
+        setError(apiResult.error || 'Произошла ошибка при регистрации');
         setIsLoading(false);
         return;
       }
       
-      // 2. Добавляем в PostgreSQL через миграцию
-      try {
-        const migrationSQL = `INSERT INTO users (login, password, created_at, updated_at) VALUES ('${registerData.login.replace(/'/g, "''")}', '${registerData.password.replace(/'/g, "''")}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT (login) DO NOTHING;`;
-        
-        // Здесь нужно вызвать migrate_db, но это невозможно из фронтенда
-        console.log('📋 SQL для БД:', migrationSQL);
-        console.log('⚠️ Миграция в PostgreSQL будет выполнена администратором');
-        
-      } catch (dbError) {
-        console.warn('⚠️ Не удалось добавить в PostgreSQL, но локально пользователь создан:', dbError);
-      }
+      // Дублируем в локальную базу для оффлайн работы
+      saveUserToLocalDB(registerData.login, registerData.password);
 
       setSuccess('Регистрация прошла успешно! Теперь можете войти в систему.');
       setRegisterData({
@@ -146,9 +148,9 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
           </CardDescription>
           <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
             <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
-              <strong>🗃️ Локальная база + PostgreSQL</strong><br />
-              Данные сохраняются в браузере и готовы для PostgreSQL<br />
-              SQL миграции генерируются автоматически
+              <strong>🗃️ Автоматическая интеграция с PostgreSQL</strong><br />
+              Данные автоматически сохраняются в базу данных<br />
+              Резервная копия хранится локально
             </p>
           </div>
         </CardHeader>

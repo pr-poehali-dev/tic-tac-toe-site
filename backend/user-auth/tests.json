@@ -1,0 +1,32 @@
+{
+  "tests": [
+    {
+      "name": "Test user authentication",
+      "method": "POST",
+      "body": {
+        "login": "test_user",
+        "password": "test123"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "message": "User authenticated successfully"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Test invalid credentials",
+      "method": "POST",
+      "body": {
+        "login": "invalid_user",
+        "password": "wrong_password"
+      },
+      "expectedStatus": 401,
+      "expectedBody": {
+        "success": false,
+        "error": "Invalid login or password"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
