@@ -106,30 +106,7 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
         return;
       }
 
-      // Создаем нового пользователя локально
-      const newUser = {
-        id: Date.now(),
-        login: registerData.login,
-        password: registerData.password,
-        created_at: new Date().toISOString()
-      };
-
-      users.push(newUser);
-      saveUsers(users);
-
-      // Отправляем email уведомление администратору (не блокируем регистрацию при ошибке)
-      try {
-        const emailResult = await sendEmailNotification(registerData.login);
-        if (emailResult.success) {
-          console.log('Email уведомление отправлено:', emailResult.message);
-        } else {
-          console.warn('Email уведомление не отправлено:', emailResult.error);
-        }
-      } catch (emailError) {
-        console.warn('Ошибка отправки email уведомления:', emailError);
-      }
-
-      setSuccess('Регистрация прошла успешно! SQL миграция создана. Администратор получил уведомление. Теперь можете войти в систему.');
+      setSuccess('Регистрация прошла успешно! Теперь можете войти в систему.');
       setRegisterData({
         login: '',
         password: '',
@@ -282,33 +259,7 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
                   </div>
                 </div>
 
-                {/* Настройки миграции */}
-                <div className="space-y-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border">
-                  <div className="flex items-center space-x-3">
-                    <Database className="h-4 w-4 text-muted-foreground" />
-                    <Label className="text-sm font-medium">Настройки базы данных</Label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="auto-migration"
-                      checked={useAutoMigration}
-                      onChange={(e) => setUseAutoMigration(e.target.checked)}
-                      className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                    />
-                    <Label htmlFor="auto-migration" className="text-sm">
-                      Автоматически выполнять миграции через API
-                    </Label>
-                  </div>
-                  
-                  <p className="text-xs text-muted-foreground">
-                    {useAutoMigration 
-                      ? "✅ Пользователь будет добавлен в PostgreSQL базу данных автоматически"
-                      : "⚠️ Будет создан только SQL код - нужно выполнить миграцию вручную"
-                    }
-                  </p>
-                </div>
+
 
                 <Button type="submit" className="w-full coral-button" disabled={isLoading}>
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
