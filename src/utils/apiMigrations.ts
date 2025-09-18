@@ -2,7 +2,8 @@
 
 const FUNC_URLS = {
   migrations: '', // Будет заполнено после деплоя backend/migrations
-  users: '' // Будет заполнено после деплоя backend/users
+  users: '', // Будет заполнено после деплоя backend/users
+  emailNotifications: '' // Будет заполнено после деплоя backend/email-notifications
 };
 
 // Функция для получения URL функций из func2url.json
@@ -13,6 +14,7 @@ export const loadFunctionUrls = async () => {
     
     FUNC_URLS.migrations = data.migrations || '';
     FUNC_URLS.users = data.users || '';
+    FUNC_URLS.emailNotifications = data['email-notifications'] || '';
     
     return FUNC_URLS;
   } catch (error) {
@@ -135,6 +137,58 @@ export const getUsersAPI = async () => {
 
   } catch (error) {
     console.error('Ошибка получения пользователей:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Неизвестная ошибка'
+    };
+  }
+};
+
+// Отправка email уведомления о регистрации
+export const sendEmailNotification = async (userLogin: string, userEmail?: string) => {
+  try {
+    // Загружаем URL если они не загружены
+    if (!FUNC_URLS.emailNotifications) {
+      await loadFunctionUrls();
+    }
+
+    if (!FUNC_URLS.emailNotifications) {
+      console.warn('URL функции email уведомлений не найден - пропускаем отправку');
+      return {
+        success: false,
+        error: 'Email уведомления не настроены'
+      };
+    }
+
+    const response = await fetch(FUNC_URLS.emailNotifications, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        user_login: userLogin,
+        user_email: userEmail || '',
+        notification_type: 'registration'
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.warn('Ошибка отправки email уведомления:', data.error);
+      return {
+        success: false,
+        error: data.error || 'Ошибка отправки email уведомления'
+      };
+    }
+
+    return {
+      success: true,
+      message: data.message
+    };
+
+  } catch (error) {
+    console.warn('Ошибка отправки email уведомления:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Неизвестная ошибка'

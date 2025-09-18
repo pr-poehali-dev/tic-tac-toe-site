@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Loader2, User, Lock, Database } from 'lucide-react';
 import { executeUserMigration } from '@/utils/executeUserMigration';
-import { executeAutomaticMigration, createUserAPI } from '@/utils/apiMigrations';
+import { executeAutomaticMigration, createUserAPI, sendEmailNotification } from '@/utils/apiMigrations';
 
 interface SimpleAuthFormProps {
   onSuccess: (user: any) => void;
@@ -155,7 +155,19 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
       users.push(newUser);
       saveUsers(users);
 
-      setSuccess('Регистрация прошла успешно! SQL миграция создана. Теперь можете войти в систему.');
+      // Отправляем email уведомление администратору (не блокируем регистрацию при ошибке)
+      try {
+        const emailResult = await sendEmailNotification(registerData.login);
+        if (emailResult.success) {
+          console.log('Email уведомление отправлено:', emailResult.message);
+        } else {
+          console.warn('Email уведомление не отправлено:', emailResult.error);
+        }
+      } catch (emailError) {
+        console.warn('Ошибка отправки email уведомления:', emailError);
+      }
+
+      setSuccess('Регистрация прошла успешно! SQL миграция создана. Администратор получил уведомление. Теперь можете войти в систему.');
       setRegisterData({
         login: '',
         password: '',
