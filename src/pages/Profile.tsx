@@ -26,8 +26,7 @@ const Profile: React.FC = () => {
   }
 
   // Получаем инициалы пользователя
-  const getInitials = (name: string | undefined | null) => {
-    if (!name) return "U";
+  const getInitials = (name: string) => {
     return name.charAt(0).toUpperCase();
   };
 
@@ -36,13 +35,13 @@ const Profile: React.FC = () => {
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center mb-8">
           <Avatar className="h-20 w-20 mr-4">
-            <AvatarFallback className="text-2xl">{getInitials(user.user)}</AvatarFallback>
+            <AvatarFallback className="text-2xl">{getInitials(user.username)}</AvatarFallback>
           </Avatar>
           <div>
-            <h1 className="text-2xl font-bold">{user.user}</h1>
-            <p className="text-gray-500">Зарегистрирован: {new Date(user.createdAt).toLocaleDateString()}</p>
+            <h1 className="text-2xl font-bold">{user.username}</h1>
+            <p className="text-gray-500">{user.email}</p>
             <div className="mt-1">
-              <Badge variant="outline">Игрок</Badge>
+              <Badge variant="outline">{user.role === "admin" ? "Администратор" : "Игрок"}</Badge>
             </div>
           </div>
         </div>

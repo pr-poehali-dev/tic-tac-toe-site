@@ -23,8 +23,7 @@ const Header: React.FC = () => {
   }
   
   // Получаем инициалы пользователя
-  const getInitials = (name: string | undefined | null) => {
-    if (!name) return "U";
+  const getInitials = (name: string) => {
     return name.charAt(0).toUpperCase();
   };
 
@@ -58,13 +57,13 @@ const Header: React.FC = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full bg-ocean-100 dark:bg-ocean-700 hover:bg-ocean-200 dark:hover:bg-ocean-600">
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-ocean-500 text-white">{getInitials(user?.user)}</AvatarFallback>
+                    <AvatarFallback className="bg-ocean-500 text-white">{user ? getInitials(user.username) : "U"}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="underwater-card border-none">
                 <DropdownMenuItem className="font-medium cursor-default">
-                  {user?.user}
+                  {user?.username}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
