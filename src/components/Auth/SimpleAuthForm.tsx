@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Loader2, User, Lock, Database } from 'lucide-react';
 import { executeUserMigration } from '@/utils/executeUserMigration';
+import { executeAutomaticMigration, createUserAPI } from '@/utils/apiMigrations';
 
 interface SimpleAuthFormProps {
   onSuccess: (user: any) => void;
@@ -29,6 +30,9 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
     password: '',
     confirmPassword: ''
   });
+  
+  // Настройка автоматических миграций
+  const [useAutoMigration, setUseAutoMigration] = useState(true);
 
   // Простая система пользователей
   const getUsers = () => {
@@ -108,8 +112,31 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
         return;
       }
 
-      // Выполняем SQL миграцию для добавления в базу данных
-      const migrationResult = await executeUserMigration(registerData.login, registerData.password);
+      let migrationResult;
+      
+      if (useAutoMigration) {
+        // Пытаемся выполнить автоматическую миграцию через API
+        const localMigration = await executeUserMigration(registerData.login, registerData.password);
+        if (localMigration.success && localMigration.migrationSql) {
+          migrationResult = await executeAutomaticMigration(
+            localMigration.migrationSql, 
+            `create_user_${registerData.login}_${Date.now()}`
+          );
+          
+          if (migrationResult.success) {
+            // Также создаем пользователя через API
+            const apiResult = await createUserAPI(registerData.login, registerData.password);
+            if (!apiResult.success) {
+              console.warn('API создание не удалось, но миграция выполнена:', apiResult.error);
+            }
+          }
+        } else {
+          migrationResult = { success: false, error: 'Ошибка создания локальной миграции' };
+        }
+      } else {
+        // Выполняем только локальную миграцию как раньше
+        migrationResult = await executeUserMigration(registerData.login, registerData.password);
+      }
       
       if (!migrationResult.success) {
         setError(`Ошибка создания миграции: ${migrationResult.error}`);
@@ -279,6 +306,34 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
                       disabled={isLoading}
                     />
                   </div>
+                </div>
+
+                {/* Настройки миграции */}
+                <div className="space-y-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border">
+                  <div className="flex items-center space-x-3">
+                    <Database className="h-4 w-4 text-muted-foreground" />
+                    <Label className="text-sm font-medium">Настройки базы данных</Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="auto-migration"
+                      checked={useAutoMigration}
+                      onChange={(e) => setUseAutoMigration(e.target.checked)}
+                      className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    />
+                    <Label htmlFor="auto-migration" className="text-sm">
+                      Автоматически выполнять миграции через API
+                    </Label>
+                  </div>
+                  
+                  <p className="text-xs text-muted-foreground">
+                    {useAutoMigration 
+                      ? "✅ Пользователь будет добавлен в PostgreSQL базу данных автоматически"
+                      : "⚠️ Будет создан только SQL код - нужно выполнить миграцию вручную"
+                    }
+                  </p>
                 </div>
 
                 <Button type="submit" className="w-full coral-button" disabled={isLoading}>

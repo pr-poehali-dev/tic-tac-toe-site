@@ -14,6 +14,7 @@ import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import InventoryPage from "./pages/InventoryPage";
+import AdminPanel from "./pages/AdminPanel";
 
 function App() {
   return (
@@ -43,6 +44,14 @@ function App() {
           element={
             <ProtectedRoute adminRequired>
               <Admin />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin-panel"
+          element={
+            <ProtectedRoute adminRequired>
+              <AdminPanel />
             </ProtectedRoute>
           }
         />
