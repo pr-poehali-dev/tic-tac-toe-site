@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import Icon from '@/components/ui/icon';
+import UserInventory from './UserInventory';
 
 interface User {
   id: number;
@@ -180,6 +181,9 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout }) => {
 
           </CardContent>
         </Card>
+
+        {/* Инвентарь пользователя */}
+        <UserInventory userId={user.id} />
 
         {/* Информационное сообщение */}
         <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">

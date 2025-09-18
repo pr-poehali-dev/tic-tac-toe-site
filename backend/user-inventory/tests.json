@@ -1,0 +1,34 @@
+{
+  "tests": [
+    {
+      "name": "Test get user inventory",
+      "method": "GET",
+      "path": "/?user_id=5",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "data": {
+          "user_id": 5,
+          "inventory": "array",
+          "stats": {
+            "total_items": "number",
+            "total_value": "number",
+            "equipped_items": "number"
+          }
+        }
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Test missing user_id parameter",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 400,
+      "expectedBody": {
+        "success": false,
+        "error": "user_id parameter is required"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
