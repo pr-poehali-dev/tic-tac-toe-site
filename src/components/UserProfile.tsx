@@ -74,12 +74,12 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout }) => {
               </Avatar>
               <div>
                 <CardTitle className="text-2xl">{user.login}</CardTitle>
-                <CardDescription className="flex items-center justify-center gap-2 mt-2">
+                <div className="flex items-center justify-center gap-2 mt-2">
                   <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
                     <Icon name="CheckCircle" size={14} className="mr-1" />
                     Активный пользователь
                   </Badge>
-                </CardDescription>
+                </div>
               </div>
             </div>
           </CardHeader>
