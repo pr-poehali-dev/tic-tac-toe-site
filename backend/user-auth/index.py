@@ -64,12 +64,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         conn = psycopg2.connect(database_url)
         cursor = conn.cursor()
         
+        # Escape quotes for SQL injection protection
+        safe_login = login.replace("'", "''")
+        safe_password = password.replace("'", "''")
+        
         # Find user by login and password
-        cursor.execute('''
+        cursor.execute(f'''
             SELECT id, login, created_at, updated_at 
             FROM users 
-            WHERE login = %s AND password = %s
-        ''', (login, password))
+            WHERE login = '{safe_login}' AND password = '{safe_password}'
+        ''')
         
         user_data = cursor.fetchone()
         

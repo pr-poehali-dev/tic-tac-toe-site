@@ -85,8 +85,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         conn = psycopg2.connect(database_url)
         cursor = conn.cursor()
         
+        # Escape quotes for SQL injection protection
+        safe_login = login.replace("'", "''")
+        safe_password = password.replace("'", "''")
+        
         # Check if user already exists
-        cursor.execute('SELECT id FROM users WHERE login = %s', (login,))
+        cursor.execute(f"SELECT id FROM users WHERE login = '{safe_login}'")
         existing_user = cursor.fetchone()
         
         if existing_user:
@@ -102,11 +106,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             }
         
         # Insert new user
-        cursor.execute('''
+        cursor.execute(f'''
             INSERT INTO users (login, password, created_at, updated_at) 
-            VALUES (%s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            VALUES ('{safe_login}', '{safe_password}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             RETURNING id, login, created_at
-        ''', (login, password))
+        ''')
         
         user_data = cursor.fetchone()
         conn.commit()

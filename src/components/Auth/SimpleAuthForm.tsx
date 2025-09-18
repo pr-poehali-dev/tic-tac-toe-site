@@ -42,26 +42,16 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
     console.log('Attempting login with:', loginData.login, loginData.password);
 
     try {
-      // Сначала пробуем через PostgreSQL API
+      // Аутентификация через PostgreSQL
       const apiResult = await loginUserAPI(loginData.login, loginData.password);
       
       if (apiResult.success && apiResult.user) {
-        console.log('Login successful via PostgreSQL API');
+        console.log('Login successful via PostgreSQL');
         setSuccess('Вход выполнен успешно!');
         localStorage.setItem('currentUser', JSON.stringify(apiResult.user));
         onSuccess(apiResult.user);
-        return;
-      }
-      
-      // Если API недоступно, пробуем локальную базу
-      const localUser = findUser(loginData.login, loginData.password);
-      if (localUser) {
-        console.log('Login successful via local database');
-        setSuccess('Вход выполнен успешно (локально)!');
-        localStorage.setItem('currentUser', JSON.stringify(localUser));
-        onSuccess(localUser);
       } else {
-        setError('Неверный логин или пароль');
+        setError(apiResult.error || 'Неверный логин или пароль');
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -109,7 +99,7 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
         return;
       }
 
-      // Регистрируем пользователя через PostgreSQL API
+      // Регистрируем пользователя напрямую в PostgreSQL
       const apiResult = await registerUserAPI(registerData.login, registerData.password);
       
       if (!apiResult.success) {
@@ -117,9 +107,6 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
         setIsLoading(false);
         return;
       }
-      
-      // Дублируем в локальную базу для оффлайн работы
-      saveUserToLocalDB(registerData.login, registerData.password);
 
       setSuccess('Регистрация прошла успешно! Теперь можете войти в систему.');
       setRegisterData({
@@ -148,9 +135,9 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
           </CardDescription>
           <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
             <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
-              <strong>🗃️ Автоматическая интеграция с PostgreSQL</strong><br />
-              Данные автоматически сохраняются в базу данных<br />
-              Резервная копия хранится локально
+              <strong>🗃️ Прямое сохранение в PostgreSQL</strong><br />
+              Все данные сохраняются напрямую в базу данных<br />
+              Никаких локальных копий
             </p>
           </div>
         </CardHeader>
