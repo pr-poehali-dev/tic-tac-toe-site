@@ -1,0 +1,14 @@
+{
+  "tests": [{
+    "name": "Test seed games endpoint",
+    "method": "POST",
+    "path": "/",
+    "expectedStatus": 200,
+    "expectedBody": {
+      "success": "boolean",
+      "message": "string",
+      "games_created": "number"
+    },
+    "bodyMatcher": "partial"
+  }]
+}

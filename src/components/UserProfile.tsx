@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import Icon from '@/components/ui/icon';
 import UserInventory from './UserInventory';
+import GameHistory from './GameHistory';
 
 interface User {
   id: number;
@@ -184,6 +185,9 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout }) => {
 
         {/* Инвентарь пользователя */}
         <UserInventory userId={user.id} />
+
+        {/* История игр */}
+        <GameHistory userId={user.id} limit={10} />
 
         {/* Информационное сообщение */}
         <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
