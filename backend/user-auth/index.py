@@ -68,6 +68,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         safe_login = login.replace("'", "''")
         safe_password = password.replace("'", "''")
         
+        # Debug logging
+        print(f"DEBUG: Trying to auth user: login='{safe_login}', password='{safe_password}'")
+        
         # Find user by login and password
         cursor.execute(f'''
             SELECT id, login, created_at, updated_at 
@@ -75,7 +78,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             WHERE login = '{safe_login}' AND password = '{safe_password}'
         ''')
         
+        print(f"DEBUG: Query executed successfully")
+        
         user_data = cursor.fetchone()
+        print(f"DEBUG: Query result: {user_data}")
         
         # Close connections
         cursor.close()

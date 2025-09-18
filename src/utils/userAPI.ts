@@ -71,6 +71,10 @@ export const loginUserAPI = async (login: string, password: string): Promise<Aut
     });
 
     const data = await response.json();
+    
+    // Отладочная информация
+    console.log(`DEBUG: Auth response status: ${response.status}`);
+    console.log(`DEBUG: Auth response data:`, data);
 
     if (response.ok && data.success) {
       console.log('✅ Пользователь авторизован через PostgreSQL:', login);
@@ -80,10 +84,10 @@ export const loginUserAPI = async (login: string, password: string): Promise<Aut
         message: data.message
       };
     } else {
-      console.error('❌ Ошибка авторизации:', data.error);
+      console.error('❌ Ошибка авторизации:', data.error || data);
       return {
         success: false,
-        error: data.error || 'Неверный логин или пароль'
+        error: data.error || data || 'Неверный логин или пароль'
       };
     }
   } catch (error) {
