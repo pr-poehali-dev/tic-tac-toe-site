@@ -1,0 +1,40 @@
+{
+  "tests": [
+    {
+      "name": "Тестовый вход",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "action": "login",
+        "login": "test",
+        "password": "test123"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "user": {
+          "login": "string"
+        }
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Регистрация пользователя",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "action": "register",
+        "login": "newuser",
+        "password": "password123"
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "success": true,
+        "user": {
+          "login": "string"
+        }
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

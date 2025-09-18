@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import BubbleBackground from "@/components/BubbleBackground";
 import UnderwaterIcon from "@/components/UnderwaterIcon";
-import AuthForm from "@/components/Auth/AuthForm";
+import SimpleAuthForm from "@/components/Auth/SimpleAuthForm";
 
 const Index: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
@@ -17,7 +17,7 @@ const Index: React.FC = () => {
 
   // Если показываем форму аутентификации, рендерим только её
   if (showAuthForm) {
-    return <AuthForm onSuccess={handleAuthSuccess} />;
+    return <SimpleAuthForm onSuccess={handleAuthSuccess} />;
   }
 
   return (
