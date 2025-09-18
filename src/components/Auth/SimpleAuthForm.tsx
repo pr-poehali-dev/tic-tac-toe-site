@@ -90,15 +90,6 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
     }
 
     try {
-      const users = getLocalUsers();
-      
-      // Проверяем, существует ли уже пользователь
-      if (users.find((u: any) => u.user === registerData.login)) {
-        setError('Пользователь с таким логином уже существует');
-        setIsLoading(false);
-        return;
-      }
-
       // Регистрируем пользователя напрямую в PostgreSQL
       const apiResult = await registerUserAPI(registerData.login, registerData.password);
       
