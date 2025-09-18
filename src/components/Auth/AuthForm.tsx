@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Loader2, User, Lock } from 'lucide-react';
 import Icon from '@/components/ui/icon';
+import { localLogin, localRegister } from '@/services/localAuth';
 
 interface AuthFormProps {
   onSuccess: (user: any) => void;
@@ -38,34 +39,17 @@ const AuthForm: React.FC<AuthFormProps> = ({ onSuccess }) => {
     setError(null);
     setSuccess(null);
 
-    try {
-      const response = await fetch(authUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'login',
-          login: loginData.login,
-          password: loginData.password
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setSuccess('Вход выполнен успешно!');
-        onSuccess(data.user);
-        // Сохраняем пользователя в localStorage
-        localStorage.setItem('currentUser', JSON.stringify(data.user));
-      } else {
-        setError(data.error || 'Произошла ошибка при входе');
-      }
-    } catch (err) {
-      setError('Ошибка подключения к серверу');
-    } finally {
-      setIsLoading(false);
+    // Используем локальную систему аутентификации
+    const result = localLogin(loginData.login, loginData.password);
+    
+    if (result.success && result.user) {
+      setSuccess('Вход выполнен успешно!');
+      onSuccess(result.user);
+    } else {
+      setError(result.error || 'Произошла ошибка при входе');
     }
+    
+    setIsLoading(false);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -81,37 +65,22 @@ const AuthForm: React.FC<AuthFormProps> = ({ onSuccess }) => {
       return;
     }
 
-    try {
-      const response = await fetch(authUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'register',
-          login: registerData.login,
-          password: registerData.password
-        })
+    // Используем локальную систему регистрации
+    const result = localRegister(registerData.login, registerData.password);
+    
+    if (result.success) {
+      setSuccess('Регистрация прошла успешно! Теперь можете войти в систему.');
+      // Очищаем форму регистрации
+      setRegisterData({
+        login: '',
+        password: '',
+        confirmPassword: ''
       });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setSuccess('Регистрация прошла успешно! Теперь можете войти в систему.');
-        // Очищаем форму регистрации
-        setRegisterData({
-          login: '',
-          password: '',
-          confirmPassword: ''
-        });
-      } else {
-        setError(data.error || 'Произошла ошибка при регистрации');
-      }
-    } catch (err) {
-      setError('Ошибка подключения к серверу');
-    } finally {
-      setIsLoading(false);
+    } else {
+      setError(result.error || 'Произошла ошибка при регистрации');
     }
+    
+    setIsLoading(false);
   };
 
   return (
@@ -125,6 +94,13 @@ const AuthForm: React.FC<AuthFormProps> = ({ onSuccess }) => {
           <CardDescription>
             Войдите в аккаунт или создайте новый
           </CardDescription>
+          <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
+            <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
+              <strong>Тестовый аккаунт:</strong><br />
+              Логин: test<br />
+              Пароль: test123
+            </p>
+          </div>
         </CardHeader>
 
         <CardContent>

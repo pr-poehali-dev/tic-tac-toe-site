@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { localLogin, localRegister, localLogout, getCurrentUser, initTestUser } from "@/services/localAuth";
 
 // Типы данных пользователя
 interface User {
@@ -38,100 +39,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const authUrl = 'https://functions.poehali.dev/5d68be3f-eff8-48bb-bde1-620d59e59f34';
 
-  // Проверка сохраненного пользователя
+  // Инициализация и проверка сохраненного пользователя
   useEffect(() => {
-    const storedUser = localStorage.getItem("currentUser");
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        // Создаем пользователя с нужной структурой
-        const user: User = {
-          id: parsedUser.id,
-          username: parsedUser.login,
-          login: parsedUser.login,
-          role: parsedUser.login === 'admin' ? 'admin' : 'user',
-          created_at: parsedUser.created_at
-        };
-        setUser(user);
-        setIsAuthenticated(true);
-      } catch (error) {
-        localStorage.removeItem("currentUser");
-      }
+    // Инициализируем тестового пользователя
+    initTestUser();
+    
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      // Создаем пользователя с нужной структурой
+      const user: User = {
+        id: currentUser.id,
+        username: currentUser.login,
+        login: currentUser.login,
+        role: currentUser.login === 'admin' ? 'admin' : 'user',
+        created_at: currentUser.created_at
+      };
+      setUser(user);
+      setIsAuthenticated(true);
     }
   }, []);
 
-  // Вход через API
+  // Вход через локальную систему
   const login = async (credentials: AuthCredentials): Promise<boolean> => {
-    try {
-      const response = await fetch(authUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'login',
-          login: credentials.login,
-          password: credentials.password
-        })
-      });
+    const result = localLogin(credentials.login, credentials.password);
+    
+    if (result.success && result.user) {
+      // Создаем пользователя с нужной структурой
+      const user: User = {
+        id: result.user.id,
+        username: result.user.login,
+        login: result.user.login,
+        role: result.user.login === 'admin' ? 'admin' : 'user',
+        created_at: result.user.created_at
+      };
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        // Создаем пользователя с нужной структурой
-        const user: User = {
-          id: data.user.id,
-          username: data.user.login,
-          login: data.user.login,
-          role: data.user.login === 'admin' ? 'admin' : 'user',
-          created_at: data.user.created_at
-        };
-
-        setUser(user);
-        setIsAuthenticated(true);
-        localStorage.setItem("currentUser", JSON.stringify(data.user));
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('Ошибка входа:', error);
-      return false;
+      setUser(user);
+      setIsAuthenticated(true);
+      return true;
     }
+    
+    return false;
   };
 
-  // Регистрация через API
+  // Регистрация через локальную систему
   const register = async (userData: AuthCredentials): Promise<boolean> => {
-    try {
-      const response = await fetch(authUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'register',
-          login: userData.login,
-          password: userData.password
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        return true; // Регистрация прошла успешно, но не входим автоматически
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('Ошибка регистрации:', error);
-      return false;
-    }
+    const result = localRegister(userData.login, userData.password);
+    return result.success;
   };
 
   const logout = () => {
+    localLogout();
     setUser(null);
     setIsAuthenticated(false);
-    localStorage.removeItem("currentUser");
   };
 
   return (

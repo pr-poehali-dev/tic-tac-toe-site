@@ -20,7 +20,9 @@ def get_db_connection():
     database_url = os.environ.get('DATABASE_URL')
     if not database_url:
         raise Exception('DATABASE_URL environment variable not set')
-    return psycopg2.connect(database_url)
+    conn = psycopg2.connect(database_url)
+    conn.autocommit = True
+    return conn
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -47,8 +49,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     try:
         if method == 'POST':
-            body_data = json.loads(event.get('body', '{}'))
+            body_str = event.get('body', '{}')
+            print(f"Received body: {body_str}")  # Отладочный вывод
+            
+            body_data = json.loads(body_str)
+            print(f"Parsed body data: {body_data}")  # Отладочный вывод
+            
             action = body_data.get('action')
+            print(f"Action: {action}")  # Отладочный вывод
             
             if action == 'register':
                 return handle_register(body_data)
@@ -58,7 +66,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 return {
                     'statusCode': 400,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                    'body': json.dumps({'error': 'Неизвестное действие'})
+                    'body': json.dumps({'error': f'Неизвестное действие: {action}'})
                 }
         
         return {
@@ -107,7 +115,7 @@ def handle_register(data: Dict[str, Any]) -> Dict[str, Any]:
         cursor = conn.cursor()
         
         # Проверяем, существует ли уже пользователь с таким логином
-        cursor.execute("SELECT id FROM users WHERE login = %s", (login,))
+        cursor.execute("SELECT id FROM users WHERE login = '" + login + "'")
         existing_user = cursor.fetchone()
         
         if existing_user:
@@ -121,14 +129,13 @@ def handle_register(data: Dict[str, Any]) -> Dict[str, Any]:
         
         # Создаем нового пользователя
         hashed_password = hash_password(password)
+        print(f"Hashing password '{password}' -> '{hashed_password}'")  # Отладочный вывод
         cursor.execute(
-            "INSERT INTO users (login, password) VALUES (%s, %s) RETURNING id, created_at",
-            (login, hashed_password)
+            "INSERT INTO users (login, password) VALUES ('" + login + "', '" + hashed_password + "') RETURNING id, created_at"
         )
         result = cursor.fetchone()
         user_id, created_at = result
         
-        conn.commit()
         cursor.close()
         conn.close()
         
@@ -173,8 +180,7 @@ def handle_login(data: Dict[str, Any]) -> Dict[str, Any]:
         
         # Ищем пользователя по логину
         cursor.execute(
-            "SELECT id, login, password, created_at FROM users WHERE login = %s",
-            (login,)
+            "SELECT id, login, password, created_at FROM users WHERE login = '" + login + "'"
         )
         user_data = cursor.fetchone()
         
