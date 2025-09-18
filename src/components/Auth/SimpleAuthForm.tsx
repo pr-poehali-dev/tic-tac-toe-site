@@ -6,8 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Loader2, User, Lock, Database } from 'lucide-react';
-import { executeUserMigration } from '@/utils/executeUserMigration';
-import { executeAutomaticMigration, createUserAPI, sendEmailNotification } from '@/utils/apiMigrations';
+import { saveUserToLocalDB, findUser, getLocalUsers } from '@/utils/localDatabase';
 
 interface SimpleAuthFormProps {
   onSuccess: (user: any) => void;
@@ -31,20 +30,7 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
     confirmPassword: ''
   });
   
-  // Настройка автоматических миграций
-  const [useAutoMigration, setUseAutoMigration] = useState(true);
 
-  // Простая система пользователей
-  const getUsers = () => {
-    const users = localStorage.getItem('simple_users');
-    return users ? JSON.parse(users) : [
-      { id: 1, login: 'test', password: 'test123', created_at: new Date().toISOString() }
-    ];
-  };
-
-  const saveUsers = (users: any[]) => {
-    localStorage.setItem('simple_users', JSON.stringify(users));
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,8 +41,7 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
     console.log('Attempting login with:', loginData.login, loginData.password);
 
     try {
-      const users = getUsers();
-      const user = users.find((u: any) => u.login === loginData.login && u.password === loginData.password);
+      const user = findUser(loginData.login, loginData.password);
 
       if (user) {
         console.log('Login successful');
@@ -103,48 +88,20 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
     }
 
     try {
-      const users = getUsers();
+      const users = getLocalUsers();
       
       // Проверяем, существует ли уже пользователь
-      if (users.find((u: any) => u.login === registerData.login)) {
+      if (users.find((u: any) => u.user === registerData.login)) {
         setError('Пользователь с таким логином уже существует');
         setIsLoading(false);
         return;
       }
 
-      let migrationResult;
+      // Сохраняем пользователя в локальную базу
+      const saveResult = saveUserToLocalDB(registerData.login, registerData.password);
       
-      if (useAutoMigration) {
-        // Пытаемся выполнить автоматическую миграцию через API
-        const localMigration = await executeUserMigration(registerData.login, registerData.password);
-        console.log('Результат локальной миграции:', localMigration);
-        
-        if (localMigration.success && localMigration.migrationSql) {
-          migrationResult = await executeAutomaticMigration(
-            localMigration.migrationSql, 
-            `create_user_${registerData.login}_${Date.now()}`
-          );
-          
-          if (migrationResult.success) {
-            // Также создаем пользователя через API
-            const apiResult = await createUserAPI(registerData.login, registerData.password);
-            if (!apiResult.success) {
-              console.warn('API создание не удалось, но миграция выполнена:', apiResult.error);
-            }
-          }
-        } else {
-          migrationResult = { 
-            success: false, 
-            error: localMigration.error || 'Ошибка создания локальной миграции' 
-          };
-        }
-      } else {
-        // Выполняем только локальную миграцию как раньше
-        migrationResult = await executeUserMigration(registerData.login, registerData.password);
-      }
-      
-      if (!migrationResult.success) {
-        setError(`Ошибка создания миграции: ${migrationResult.error}`);
+      if (!saveResult) {
+        setError('Пользователь с таким логином уже существует');
         setIsLoading(false);
         return;
       }
@@ -199,9 +156,9 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
           </CardDescription>
           <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
             <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
-              <strong>🗃️ Данные сохраняются в PostgreSQL</strong><br />
-              Тестовый аккаунт: test / test123<br />
-              При регистрации создается SQL миграция
+              <strong>💾 Данные сохраняются локально</strong><br />
+              Логин и пароль хранятся в браузере<br />
+              Простая система авторизации
             </p>
           </div>
         </CardHeader>
