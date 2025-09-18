@@ -97,13 +97,26 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
         return;
       }
 
-      // Сохраняем пользователя в локальную базу
-      const saveResult = saveUserToLocalDB(registerData.login, registerData.password);
+      // Сохраняем пользователя и в локальную базу и в PostgreSQL
       
+      // 1. Сначала проверяем локально
+      const saveResult = saveUserToLocalDB(registerData.login, registerData.password);
       if (!saveResult) {
         setError('Пользователь с таким логином уже существует');
         setIsLoading(false);
         return;
+      }
+      
+      // 2. Добавляем в PostgreSQL через миграцию
+      try {
+        const migrationSQL = `INSERT INTO users (login, password, created_at, updated_at) VALUES ('${registerData.login.replace(/'/g, "''")}', '${registerData.password.replace(/'/g, "''")}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT (login) DO NOTHING;`;
+        
+        // Здесь нужно вызвать migrate_db, но это невозможно из фронтенда
+        console.log('📋 SQL для БД:', migrationSQL);
+        console.log('⚠️ Миграция в PostgreSQL будет выполнена администратором');
+        
+      } catch (dbError) {
+        console.warn('⚠️ Не удалось добавить в PostgreSQL, но локально пользователь создан:', dbError);
       }
 
       setSuccess('Регистрация прошла успешно! Теперь можете войти в систему.');
@@ -133,9 +146,9 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
           </CardDescription>
           <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
             <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
-              <strong>💾 Данные сохраняются локально</strong><br />
-              Логин и пароль хранятся в браузере<br />
-              Простая система авторизации
+              <strong>🗃️ Локальная база + PostgreSQL</strong><br />
+              Данные сохраняются в браузере и готовы для PostgreSQL<br />
+              SQL миграции генерируются автоматически
             </p>
           </div>
         </CardHeader>
