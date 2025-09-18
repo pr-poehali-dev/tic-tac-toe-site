@@ -14,14 +14,14 @@ const hashPassword = (password: string): string => {
 };
 
 // Выполнение миграции пользователя
-export const executeUserMigration = async (login: string, password: string): Promise<{ success: boolean; error?: string }> => {
+export const executeUserMigration = async (login: string, password: string): Promise<{ success: boolean; error?: string; migrationSql?: string }> => {
   try {
     const hashedPassword = hashPassword(password);
     const userId = Date.now();
     const timestamp = new Date().toISOString();
     
-    // Создаем SQL для миграции
-    const migrationSQL = `INSERT INTO users (id, login, password, created_at, updated_at) VALUES (${userId}, '${login.replace(/'/g, "''")}', '${hashedPassword}', '${timestamp}', '${timestamp}') ON CONFLICT (login) DO NOTHING`;
+    // Создаем SQL для миграции (совместимый с PostgreSQL)
+    const migrationSQL = `INSERT INTO users (id, login, password_hash, created_at) VALUES (${userId}, '${login.replace(/'/g, "''")}', '${hashedPassword}', '${timestamp}') ON CONFLICT (login) DO NOTHING`;
     
     console.log('🔄 Выполняется миграция пользователя в базу данных...');
     console.log('SQL:', migrationSQL);
@@ -38,14 +38,12 @@ export const executeUserMigration = async (login: string, password: string): Pro
     localStorage.setItem('completed_user_migrations', JSON.stringify(completedMigrations));
     
     console.log('✅ Миграция пользователя выполнена успешно');
+    console.log('📄 SQL миграция:', migrationSQL);
     
-    // Показываем пользователю SQL
-    const shouldShowSQL = confirm(`Пользователь "${login}" готов к добавлению в базу данных!\n\nПоказать SQL миграцию?`);
-    if (shouldShowSQL) {
-      alert(`SQL миграция:\n\n${migrationSQL}`);
-    }
-    
-    return { success: true };
+    return { 
+      success: true, 
+      migrationSql: migrationSQL 
+    };
   } catch (error) {
     console.error('❌ Ошибка при выполнении миграции:', error);
     return { 

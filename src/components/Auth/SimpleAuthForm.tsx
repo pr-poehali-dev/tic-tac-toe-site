@@ -117,6 +117,8 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
       if (useAutoMigration) {
         // Пытаемся выполнить автоматическую миграцию через API
         const localMigration = await executeUserMigration(registerData.login, registerData.password);
+        console.log('Результат локальной миграции:', localMigration);
+        
         if (localMigration.success && localMigration.migrationSql) {
           migrationResult = await executeAutomaticMigration(
             localMigration.migrationSql, 
@@ -131,7 +133,10 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
             }
           }
         } else {
-          migrationResult = { success: false, error: 'Ошибка создания локальной миграции' };
+          migrationResult = { 
+            success: false, 
+            error: localMigration.error || 'Ошибка создания локальной миграции' 
+          };
         }
       } else {
         // Выполняем только локальную миграцию как раньше
