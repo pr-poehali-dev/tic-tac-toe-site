@@ -35,7 +35,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     try:
         # Parse request body
         body_data = json.loads(event.get('body', '{}'))
-        login = body_data.get('login', '').strip()
+        login = body_data.get('username', body_data.get('login', '')).strip()
         password = body_data.get('password', '').strip()
         
         if not login or not password:
@@ -74,7 +74,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Find user by login and password
         cursor.execute(f'''
             SELECT id, login, created_at, updated_at 
-            FROM users 
+            FROM t_p94806225_tic_tac_toe_site.users 
             WHERE login = '{safe_login}' AND password = '{safe_password}'
         ''')
         
