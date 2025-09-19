@@ -11,7 +11,7 @@ interface User {
 }
 
 interface AuthCredentials {
-  login: string;
+  username: string;
   password: string;
 }
 
@@ -61,7 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Вход через локальную систему
   const login = async (credentials: AuthCredentials): Promise<boolean> => {
-    const result = localLogin(credentials.login, credentials.password);
+    const result = localLogin(credentials.username, credentials.password);
     
     if (result.success && result.user) {
       // Создаем пользователя с нужной структурой
@@ -83,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Регистрация через локальную систему
   const register = async (userData: AuthCredentials): Promise<boolean> => {
-    const result = localRegister(userData.login, userData.password);
+    const result = localRegister(userData.username, userData.password);
     return result.success;
   };
 
