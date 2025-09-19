@@ -18,25 +18,33 @@ export interface Inventory {
 }
 
 export interface Player {
-  id: string;
+  id: string | number; // Может быть строкой (локально) или числом (из БД)
   username: string;
   symbol: string; // X или O
-  stakeItemId: string;
+  stakeItemId: string | number; // ID предмета ставки
+  stakeItemName?: string; // Название предмета (для истории)
+  stakeItemValue?: number; // Стоимость предмета (для истории)
   isBot?: boolean;
+  joinedAt?: string; // ISO дата присоединения
 }
 
 export interface GameRoom {
   id: string;
   roomCode: string;
-  creatorId: string;
+  creatorId: string | number; // Может быть строкой (локально) или числом (из БД)
   players: Player[];
-  currentTurn: string; // ID игрока, чей сейчас ход
+  currentTurn: string | number; // ID игрока, чей сейчас ход
+  currentTurnPlayerId?: number; // Для совместимости с БД
   status: 'waiting' | 'playing' | 'finished';
   winner: string | null; // Имя победителя или null
+  winnerUserId?: number | null; // ID победителя из БД
   board: (string | null)[]; // Игровое поле
-  createdAt: number; // timestamp
-  lastActivity: number; // timestamp последнего действия
+  createdAt: number | string; // timestamp или ISO строка
+  startedAt?: string | null; // Дата начала игры (ISO)
+  finishedAt?: string | null; // Дата окончания игры (ISO)
+  lastActivity: number | string; // timestamp последнего действия или ISO строка
   stakes: { [playerId: string]: string }; // Ставки игроков (itemId)
+  gameData?: any; // Дополнительные данные игры
   botCheckScheduled: boolean; // Запланирована ли проверка для добавления бота
 }
 

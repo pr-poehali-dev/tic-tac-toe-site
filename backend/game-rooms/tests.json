@@ -1,0 +1,36 @@
+{
+  "tests": [
+    {
+      "name": "Test get rooms endpoint",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "data": {
+          "rooms": "array"
+        }
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Test create room",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "creator_id": 1,
+        "stake_item_id": 1,
+        "stake_item_name": "Тестовый предмет",
+        "stake_item_value": 100
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "data": {
+          "room": "object"
+        }
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
