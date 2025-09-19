@@ -69,19 +69,7 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ itemId, onClose }) => 
           <p className="text-sm text-muted-foreground">{item.description}</p>
         </div>
         
-        {item.effects && item.effects.length > 0 && (
-          <div>
-            <h4 className="text-sm font-medium mb-1">Эффекты</h4>
-            <ul className="list-disc list-inside text-sm text-muted-foreground">
-              {item.effects.map((effect, index) => (
-                <li key={index}>
-                  {effect.type === 'heal' ? 'Лечение' : effect.type}: +{effect.value}
-                  {effect.duration ? ` (${effect.duration} сек.)` : ''}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+
         
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div>
