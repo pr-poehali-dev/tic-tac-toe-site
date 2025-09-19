@@ -1,7 +1,4 @@
 {
-  "game-history": "https://functions.poehali.dev/58d61a0b-e23c-4d88-8945-db2abb75bddb",
-  "game-rooms": "https://functions.poehali.dev/fa1a3c8f-522b-49c0-a4c2-6b74634a0fe9",
-  "seed-games": "https://functions.poehali.dev/92a52466-7bbd-4f9a-9114-075952cbd5b7",
   "user-inventory": "https://functions.poehali.dev/de2f4c29-9de3-4165-9dbb-43567d499b35",
   "user-auth": "https://functions.poehali.dev/52577dc2-5723-4642-9a67-beb7cb1fe7c7"
 }
