@@ -36,7 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
-  const authUrl = 'https://functions.poehali.dev/52577dc2-5723-4642-9a67-beb7cb1fe7c7';
+  const authUrl = 'https://functions.poehali.dev/fb27e456-5104-41af-8cb3-b89d1a3c895f';
 
   // Инициализация и проверка сохраненного пользователя
   useEffect(() => {
@@ -68,7 +68,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          username: credentials.username,
+          action: 'login',
+          login: credentials.username,
           password: credentials.password
         })
       });
@@ -84,7 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           username: data.user.login,
           login: data.user.login,
           role: data.user.login === 'Laerman' ? 'admin' : 'user',
-          created_at: data.user.createdAt
+          created_at: data.user.created_at
         };
 
         setUser(user);
@@ -107,10 +108,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Регистрация через бэкенд API (пока не реализована)
+  // Регистрация через бэкенд API
   const register = async (userData: AuthCredentials): Promise<boolean> => {
-    console.log('Register not implemented yet:', userData);
-    return false;
+    try {
+      console.log('AuthContext: Attempting backend register with:', userData);
+      
+      const response = await fetch(authUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'register',
+          login: userData.username,
+          password: userData.password
+        })
+      });
+
+      console.log('AuthContext: Backend response status:', response.status);
+      const data = await response.json();
+      console.log('AuthContext: Backend response data:', data);
+
+      if (response.ok && data.success && data.user) {
+        // Создаем пользователя с нужной структурой
+        const user: User = {
+          id: data.user.id,
+          username: data.user.login,
+          login: data.user.login,
+          role: data.user.login === 'Laerman' ? 'admin' : 'user',
+          created_at: data.user.created_at
+        };
+
+        setUser(user);
+        setIsAuthenticated(true);
+        
+        // Сохраняем в localStorage для сессии
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('isAuthenticated', 'true');
+        
+        console.log('AuthContext: Registration successful, user set:', user);
+        return true;
+      }
+      
+      console.log('AuthContext: Registration failed:', data.error || 'Unknown error');
+      return false;
+      
+    } catch (error) {
+      console.error('AuthContext: Registration error:', error);
+      return false;
+    }
   };
 
   const logout = () => {

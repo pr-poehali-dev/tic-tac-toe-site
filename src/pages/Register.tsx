@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import AuthContainer from "@/components/auth/AuthContainer";
 import AuthForm from "@/components/auth/AuthForm";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
 
 interface RegisterFormValues {
   username: string;
@@ -12,17 +13,41 @@ interface RegisterFormValues {
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { register } = useAuth();
+  const { toast } = useToast();
 
-  const handleRegister = (values: RegisterFormValues) => {
-    console.log("Данные для регистрации:", values);
-    // В реальном приложении здесь должна быть отправка данных на сервер
+  const handleRegister = async (values: RegisterFormValues) => {
+    console.log('Попытка регистрации:', values);
     
-    // Имитация успешной регистрации
-    setTimeout(() => {
-      login(values.username);
-      navigate("/");
-    }, 1500);
+    try {
+      const success = await register({
+        username: values.username,
+        password: values.password
+      });
+      
+      console.log('Результат регистрации:', success);
+      
+      if (success) {
+        toast({
+          title: "Успешная регистрация",
+          description: "Добро пожаловать!",
+        });
+        
+        navigate("/", { replace: true });
+      } else {
+        toast({
+          title: "Ошибка регистрации",
+          description: "Проверьте данные и попробуйте снова",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Произошла ошибка при регистрации",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
