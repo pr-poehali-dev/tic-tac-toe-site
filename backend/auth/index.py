@@ -106,8 +106,11 @@ def handle_register(data: Dict[str, Any]) -> Dict[str, Any]:
         conn = get_db_connection()
         cursor = conn.cursor()
         
+        # Экранируем логин для SQL (заменяем одинарные кавычки)
+        escaped_login = login.replace("'", "''")
+        
         # Проверяем, существует ли уже пользователь с таким логином
-        cursor.execute("SELECT id FROM users WHERE login = %s", (login,))
+        cursor.execute(f"SELECT id FROM t_p94806225_tic_tac_toe_site.users WHERE login = '{escaped_login}'")
         existing_user = cursor.fetchone()
         
         if existing_user:
@@ -121,9 +124,10 @@ def handle_register(data: Dict[str, Any]) -> Dict[str, Any]:
         
         # Создаем нового пользователя
         hashed_password = hash_password(password)
+        escaped_password = hashed_password.replace("'", "''")
+        
         cursor.execute(
-            "INSERT INTO users (login, password) VALUES (%s, %s) RETURNING id, created_at",
-            (login, hashed_password)
+            f"INSERT INTO t_p94806225_tic_tac_toe_site.users (login, password) VALUES ('{escaped_login}', '{escaped_password}') RETURNING id, created_at"
         )
         result = cursor.fetchone()
         user_id, created_at = result
@@ -171,10 +175,12 @@ def handle_login(data: Dict[str, Any]) -> Dict[str, Any]:
         conn = get_db_connection()
         cursor = conn.cursor()
         
+        # Экранируем логин для SQL
+        escaped_login = login.replace("'", "''")
+        
         # Ищем пользователя по логину
         cursor.execute(
-            "SELECT id, login, password, created_at FROM users WHERE login = %s",
-            (login,)
+            f"SELECT id, login, password, created_at FROM t_p94806225_tic_tac_toe_site.users WHERE login = '{escaped_login}'"
         )
         user_data = cursor.fetchone()
         
