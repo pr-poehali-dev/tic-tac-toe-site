@@ -33,7 +33,9 @@ const Register: React.FC = () => {
           description: "Добро пожаловать!",
         });
         
-        navigate("/", { replace: true });
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 500);
       } else {
         toast({
           title: "Ошибка регистрации",
