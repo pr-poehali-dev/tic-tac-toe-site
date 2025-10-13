@@ -12,7 +12,7 @@ const Index: React.FC = () => {
 
   const handleAuthSuccess = (userData: any) => {
     setShowAuthForm(false);
-    window.location.reload();
+    // Пользователь автоматически будет обновлен через AuthContext
   };
 
   // Если показываем форму аутентификации, рендерим только её
