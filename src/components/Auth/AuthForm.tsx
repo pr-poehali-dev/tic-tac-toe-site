@@ -64,9 +64,6 @@ const AuthForm: React.FC<AuthFormProps> = ({ onSuccess }) => {
           created_at: data.user.created_at
         };
         
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('isAuthenticated', 'true');
-        
         setSuccess('Вход выполнен успешно!');
         onSuccess(user);
       } else {

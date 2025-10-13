@@ -38,24 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const authUrl = 'https://functions.poehali.dev/fb27e456-5104-41af-8cb3-b89d1a3c895f';
 
-  // Инициализация и проверка сохраненного пользователя
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    const isAuthStored = localStorage.getItem('isAuthenticated');
-    
-    if (storedUser && isAuthStored === 'true') {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        setIsAuthenticated(true);
-        console.log('AuthContext: Restored user from localStorage:', parsedUser);
-      } catch (error) {
-        console.error('AuthContext: Error parsing stored user:', error);
-        localStorage.removeItem('user');
-        localStorage.removeItem('isAuthenticated');
-      }
-    }
-  }, []);
+
 
   // Вход через бэкенд API
   const login = async (credentials: AuthCredentials): Promise<boolean> => {
@@ -90,10 +73,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         setUser(user);
         setIsAuthenticated(true);
-        
-        // Сохраняем в localStorage для сессии
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('isAuthenticated', 'true');
         
         console.log('AuthContext: Login successful, user set:', user);
         return true;
@@ -142,10 +121,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(user);
         setIsAuthenticated(true);
         
-        // Сохраняем в localStorage для сессии
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('isAuthenticated', 'true');
-        
         console.log('AuthContext: Registration successful, user set:', user);
         return true;
       }
@@ -160,8 +135,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('isAuthenticated');
     setUser(null);
     setIsAuthenticated(false);
     console.log('AuthContext: User logged out');
