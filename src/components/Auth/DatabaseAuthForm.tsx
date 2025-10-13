@@ -107,14 +107,7 @@ const DatabaseAuthForm: React.FC<DatabaseAuthFormProps> = ({ onSuccess }) => {
           <CardDescription>
             Войдите в аккаунт или создайте новый
           </CardDescription>
-          <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
-            <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
-              <strong>Данные сохраняются в базу PostgreSQL</strong><br />
-              Тестовые аккаунты:<br />
-              test / test123<br />
-              Laerman / Tvthwqu88
-            </p>
-          </div>
+
         </CardHeader>
 
         <CardContent>

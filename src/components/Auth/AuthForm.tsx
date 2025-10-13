@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Loader2, User, Lock } from 'lucide-react';
 import Icon from '@/components/ui/icon';
-import { localLogin, localRegister } from '@/services/localAuth';
+
 
 interface AuthFormProps {
   onSuccess: (user: any) => void;
@@ -31,7 +31,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onSuccess }) => {
     confirmPassword: ''
   });
 
-  const authUrl = 'https://functions.poehali.dev/5d68be3f-eff8-48bb-bde1-620d59e59f34';
+  const authUrl = 'https://functions.poehali.dev/fb27e456-5104-41af-8cb3-b89d1a3c895f';
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,14 +39,42 @@ const AuthForm: React.FC<AuthFormProps> = ({ onSuccess }) => {
     setError(null);
     setSuccess(null);
 
-    // Используем локальную систему аутентификации
-    const result = localLogin(loginData.login, loginData.password);
-    
-    if (result.success && result.user) {
-      setSuccess('Вход выполнен успешно!');
-      onSuccess(result.user);
-    } else {
-      setError(result.error || 'Произошла ошибка при входе');
+    try {
+      const response = await fetch(authUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'login',
+          login: loginData.login,
+          password: loginData.password
+        })
+      });
+
+      const data = await response.json();
+      console.log('Ответ сервера на вход:', data);
+
+      if (response.ok && data.success && data.user) {
+        const user = {
+          id: data.user.id,
+          username: data.user.login,
+          login: data.user.login,
+          role: data.user.login === 'Laerman' ? 'admin' : 'user',
+          created_at: data.user.created_at
+        };
+        
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('isAuthenticated', 'true');
+        
+        setSuccess('Вход выполнен успешно!');
+        onSuccess(user);
+      } else {
+        setError(data.error || 'Неверный логин или пароль');
+      }
+    } catch (error) {
+      console.error('Ошибка при входе:', error);
+      setError('Произошла ошибка при входе');
     }
     
     setIsLoading(false);
@@ -58,26 +86,41 @@ const AuthForm: React.FC<AuthFormProps> = ({ onSuccess }) => {
     setError(null);
     setSuccess(null);
 
-    // Проверяем совпадение паролей
     if (registerData.password !== registerData.confirmPassword) {
       setError('Пароли не совпадают');
       setIsLoading(false);
       return;
     }
 
-    // Используем локальную систему регистрации
-    const result = localRegister(registerData.login, registerData.password);
-    
-    if (result.success) {
-      setSuccess('Регистрация прошла успешно! Теперь можете войти в систему.');
-      // Очищаем форму регистрации
-      setRegisterData({
-        login: '',
-        password: '',
-        confirmPassword: ''
+    try {
+      const response = await fetch(authUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'register',
+          login: registerData.login,
+          password: registerData.password
+        })
       });
-    } else {
-      setError(result.error || 'Произошла ошибка при регистрации');
+
+      const data = await response.json();
+      console.log('Ответ сервера на регистрацию:', data);
+
+      if (response.ok && data.success) {
+        setSuccess('Регистрация прошла успешно! Теперь можете войти в систему.');
+        setRegisterData({
+          login: '',
+          password: '',
+          confirmPassword: ''
+        });
+      } else {
+        setError(data.error || 'Произошла ошибка при регистрации');
+      }
+    } catch (error) {
+      console.error('Ошибка при регистрации:', error);
+      setError('Произошла ошибка при регистрации');
     }
     
     setIsLoading(false);
@@ -94,13 +137,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onSuccess }) => {
           <CardDescription>
             Войдите в аккаунт или создайте новый
           </CardDescription>
-          <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
-            <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
-              <strong>Тестовый аккаунт:</strong><br />
-              Логин: test<br />
-              Пароль: test123
-            </p>
-          </div>
+
         </CardHeader>
 
         <CardContent>
