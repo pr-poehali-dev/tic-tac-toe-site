@@ -26,8 +26,10 @@ const Login: React.FC = () => {
   const from = (location.state as LocationState)?.from?.pathname || "/";
 
   const handleLogin = async (values: LoginFormValues) => {
+    console.log('Login attempt with values:', values);
     try {
       const success = await login(values);
+      console.log('Login result:', success);
       
       if (success) {
         // Проверяем, является ли пользователь администратором

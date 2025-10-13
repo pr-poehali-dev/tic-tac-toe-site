@@ -10,7 +10,7 @@ interface User {
 }
 
 interface AuthCredentials {
-  login: string;
+  username: string;
   password: string;
 }
 
@@ -36,102 +36,89 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
-  const authUrl = 'https://functions.poehali.dev/5d68be3f-eff8-48bb-bde1-620d59e59f34';
+  const authUrl = 'https://functions.poehali.dev/52577dc2-5723-4642-9a67-beb7cb1fe7c7';
 
-  // Проверка сохраненного пользователя
+  // Инициализация и проверка сохраненного пользователя
   useEffect(() => {
-    const storedUser = localStorage.getItem("currentUser");
-    if (storedUser) {
+    const storedUser = localStorage.getItem('user');
+    const isAuthStored = localStorage.getItem('isAuthenticated');
+    
+    if (storedUser && isAuthStored === 'true') {
       try {
         const parsedUser = JSON.parse(storedUser);
-        // Создаем пользователя с нужной структурой
-        const user: User = {
-          id: parsedUser.id,
-          username: parsedUser.login,
-          login: parsedUser.login,
-          role: parsedUser.login === 'admin' ? 'admin' : 'user',
-          created_at: parsedUser.created_at
-        };
-        setUser(user);
+        setUser(parsedUser);
         setIsAuthenticated(true);
+        console.log('AuthContext: Restored user from localStorage:', parsedUser);
       } catch (error) {
-        localStorage.removeItem("currentUser");
+        console.error('AuthContext: Error parsing stored user:', error);
+        localStorage.removeItem('user');
+        localStorage.removeItem('isAuthenticated');
       }
     }
   }, []);
 
-  // Вход через API
+  // Вход через бэкенд API
   const login = async (credentials: AuthCredentials): Promise<boolean> => {
     try {
+      console.log('AuthContext: Attempting backend login with:', credentials);
+      
       const response = await fetch(authUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          action: 'login',
-          login: credentials.login,
+          username: credentials.username,
           password: credentials.password
         })
       });
 
+      console.log('AuthContext: Backend response status:', response.status);
       const data = await response.json();
+      console.log('AuthContext: Backend response data:', data);
 
-      if (response.ok && data.success) {
+      if (response.ok && data.success && data.user) {
         // Создаем пользователя с нужной структурой
         const user: User = {
           id: data.user.id,
           username: data.user.login,
           login: data.user.login,
-          role: data.user.login === 'admin' ? 'admin' : 'user',
-          created_at: data.user.created_at
+          role: data.user.login === 'Laerman' ? 'admin' : 'user',
+          created_at: data.user.createdAt
         };
 
         setUser(user);
         setIsAuthenticated(true);
-        localStorage.setItem("currentUser", JSON.stringify(data.user));
+        
+        // Сохраняем в localStorage для сессии
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('isAuthenticated', 'true');
+        
+        console.log('AuthContext: Login successful, user set:', user);
         return true;
       }
       
+      console.log('AuthContext: Login failed:', data.error || 'Unknown error');
       return false;
+      
     } catch (error) {
-      console.error('Ошибка входа:', error);
+      console.error('AuthContext: Login error:', error);
       return false;
     }
   };
 
-  // Регистрация через API
+  // Регистрация через бэкенд API (пока не реализована)
   const register = async (userData: AuthCredentials): Promise<boolean> => {
-    try {
-      const response = await fetch(authUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'register',
-          login: userData.login,
-          password: userData.password
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        return true; // Регистрация прошла успешно, но не входим автоматически
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('Ошибка регистрации:', error);
-      return false;
-    }
+    console.log('Register not implemented yet:', userData);
+    return false;
   };
 
   const logout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('isAuthenticated');
     setUser(null);
     setIsAuthenticated(false);
-    localStorage.removeItem("currentUser");
+    console.log('AuthContext: User logged out');
   };
 
   return (
