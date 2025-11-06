@@ -13,7 +13,7 @@ export type ItemCategory = 'weapon' | 'armor' | 'tool' | 'consumable' | 'collect
 export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
 /**
- * Интерфейс для предмета (упрощенный - только цена)
+ * Интерфейс для предмета
  */
 export interface Item {
   id: string;
@@ -24,9 +24,19 @@ export interface Item {
   icon: string; // путь к иконке предмета
   stackable: boolean; // можно ли складывать в стопку
   maxStack?: number; // максимальное количество в стопке, если stackable=true
-  value: number; // ценность предмета (единственная характеристика)
+  value: number; // ценность предмета
   usable: boolean; // можно ли использовать предмет
   tradeable: boolean; // можно ли обменивать предмет
+  effects?: ItemEffect[]; // эффекты, которые дает предмет при использовании
+}
+
+/**
+ * Интерфейс для эффекта предмета
+ */
+export interface ItemEffect {
+  type: string; // тип эффекта (например, 'heal', 'damage', 'buff')
+  value: number; // значение эффекта
+  duration?: number; // длительность эффекта (в секундах), если временный
 }
 
 /**

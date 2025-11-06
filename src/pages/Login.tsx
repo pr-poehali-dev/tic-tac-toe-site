@@ -26,18 +26,35 @@ const Login: React.FC = () => {
   const from = (location.state as LocationState)?.from?.pathname || "/";
 
   const handleLogin = async (values: LoginFormValues) => {
-    console.log('Login attempt with values:', values);
     try {
       const success = await login(values);
-      console.log('Login result:', success);
       
       if (success) {
+        // Проверяем, является ли пользователь администратором
+        const storedUser = localStorage.getItem("user");
+        let isAdmin = false;
+        
+        if (storedUser) {
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            isAdmin = parsedUser.role === 'admin';
+          } catch (error) {
+            // Игнорируем ошибку парсинга
+          }
+        }
+        
         toast({
           title: "Успешный вход",
-          description: "Добро пожаловать в систему",
+          description: `Добро пожаловать в систему${isAdmin ? ", Администратор" : ""}`,
         });
         
-        navigate(from, { replace: true });
+        // Если пользователь - админ, перенаправляем на админ-панель
+        if (isAdmin) {
+          navigate("/admin", { replace: true });
+        } else {
+          // Иначе перенаправляем на страницу, с которой пришел пользователь
+          navigate(from, { replace: true });
+        }
       } else {
         toast({
           title: "Ошибка входа",

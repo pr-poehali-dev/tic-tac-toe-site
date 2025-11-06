@@ -47,7 +47,6 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSubmit }) => {
   });
 
   const handleSubmit = (values: FormValues) => {
-    console.log('Form submitted with values:', values);
     onSubmit(values);
     toast({
       title: type === "login" ? "Выполняется вход..." : "Создание аккаунта...",

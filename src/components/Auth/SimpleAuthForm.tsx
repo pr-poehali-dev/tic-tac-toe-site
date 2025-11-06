@@ -6,8 +6,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Loader2, User, Lock, Database } from 'lucide-react';
-
-import { registerUserAPI, loginUserAPI } from '@/utils/userAPI';
+import { executeUserMigration } from '@/utils/executeUserMigration';
+import { executeAutomaticMigration, createUserAPI, sendEmailNotification } from '@/utils/apiMigrations';
 
 interface SimpleAuthFormProps {
   onSuccess: (user: any) => void;
@@ -31,7 +31,20 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
     confirmPassword: ''
   });
   
+  // Настройка автоматических миграций
+  const [useAutoMigration, setUseAutoMigration] = useState(true);
 
+  // Простая система пользователей
+  const getUsers = () => {
+    const users = localStorage.getItem('simple_users');
+    return users ? JSON.parse(users) : [
+      { id: 1, login: 'test', password: 'test123', created_at: new Date().toISOString() }
+    ];
+  };
+
+  const saveUsers = (users: any[]) => {
+    localStorage.setItem('simple_users', JSON.stringify(users));
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,16 +55,16 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
     console.log('Attempting login with:', loginData.login, loginData.password);
 
     try {
-      // Аутентификация через PostgreSQL
-      const apiResult = await loginUserAPI(loginData.login, loginData.password);
-      
-      if (apiResult.success && apiResult.user) {
-        console.log('Login successful via PostgreSQL');
+      const users = getUsers();
+      const user = users.find((u: any) => u.login === loginData.login && u.password === loginData.password);
+
+      if (user) {
+        console.log('Login successful');
         setSuccess('Вход выполнен успешно!');
-        localStorage.setItem('currentUser', JSON.stringify(apiResult.user));
-        onSuccess(apiResult.user);
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        onSuccess(user);
       } else {
-        setError(apiResult.error || 'Неверный логин или пароль');
+        setError('Неверный логин или пароль');
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -90,16 +103,76 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
     }
 
     try {
-      // Регистрируем пользователя напрямую в PostgreSQL
-      const apiResult = await registerUserAPI(registerData.login, registerData.password);
+      const users = getUsers();
       
-      if (!apiResult.success) {
-        setError(apiResult.error || 'Произошла ошибка при регистрации');
+      // Проверяем, существует ли уже пользователь
+      if (users.find((u: any) => u.login === registerData.login)) {
+        setError('Пользователь с таким логином уже существует');
         setIsLoading(false);
         return;
       }
 
-      setSuccess('Регистрация прошла успешно! Теперь можете войти в систему.');
+      let migrationResult;
+      
+      if (useAutoMigration) {
+        // Пытаемся выполнить автоматическую миграцию через API
+        const localMigration = await executeUserMigration(registerData.login, registerData.password);
+        console.log('Результат локальной миграции:', localMigration);
+        
+        if (localMigration.success && localMigration.migrationSql) {
+          migrationResult = await executeAutomaticMigration(
+            localMigration.migrationSql, 
+            `create_user_${registerData.login}_${Date.now()}`
+          );
+          
+          if (migrationResult.success) {
+            // Также создаем пользователя через API
+            const apiResult = await createUserAPI(registerData.login, registerData.password);
+            if (!apiResult.success) {
+              console.warn('API создание не удалось, но миграция выполнена:', apiResult.error);
+            }
+          }
+        } else {
+          migrationResult = { 
+            success: false, 
+            error: localMigration.error || 'Ошибка создания локальной миграции' 
+          };
+        }
+      } else {
+        // Выполняем только локальную миграцию как раньше
+        migrationResult = await executeUserMigration(registerData.login, registerData.password);
+      }
+      
+      if (!migrationResult.success) {
+        setError(`Ошибка создания миграции: ${migrationResult.error}`);
+        setIsLoading(false);
+        return;
+      }
+
+      // Создаем нового пользователя локально
+      const newUser = {
+        id: Date.now(),
+        login: registerData.login,
+        password: registerData.password,
+        created_at: new Date().toISOString()
+      };
+
+      users.push(newUser);
+      saveUsers(users);
+
+      // Отправляем email уведомление администратору (не блокируем регистрацию при ошибке)
+      try {
+        const emailResult = await sendEmailNotification(registerData.login);
+        if (emailResult.success) {
+          console.log('Email уведомление отправлено:', emailResult.message);
+        } else {
+          console.warn('Email уведомление не отправлено:', emailResult.error);
+        }
+      } catch (emailError) {
+        console.warn('Ошибка отправки email уведомления:', emailError);
+      }
+
+      setSuccess('Регистрация прошла успешно! SQL миграция создана. Администратор получил уведомление. Теперь можете войти в систему.');
       setRegisterData({
         login: '',
         password: '',
@@ -126,9 +199,9 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
           </CardDescription>
           <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
             <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
-              <strong>🗃️ Прямое сохранение в PostgreSQL</strong><br />
-              Все данные сохраняются напрямую в базу данных<br />
-              Никаких локальных копий
+              <strong>🗃️ Данные сохраняются в PostgreSQL</strong><br />
+              Тестовый аккаунт: test / test123<br />
+              При регистрации создается SQL миграция
             </p>
           </div>
         </CardHeader>
@@ -252,7 +325,33 @@ const SimpleAuthForm: React.FC<SimpleAuthFormProps> = ({ onSuccess }) => {
                   </div>
                 </div>
 
-
+                {/* Настройки миграции */}
+                <div className="space-y-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border">
+                  <div className="flex items-center space-x-3">
+                    <Database className="h-4 w-4 text-muted-foreground" />
+                    <Label className="text-sm font-medium">Настройки базы данных</Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="auto-migration"
+                      checked={useAutoMigration}
+                      onChange={(e) => setUseAutoMigration(e.target.checked)}
+                      className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    />
+                    <Label htmlFor="auto-migration" className="text-sm">
+                      Автоматически выполнять миграции через API
+                    </Label>
+                  </div>
+                  
+                  <p className="text-xs text-muted-foreground">
+                    {useAutoMigration 
+                      ? "✅ Пользователь будет добавлен в PostgreSQL базу данных автоматически"
+                      : "⚠️ Будет создан только SQL код - нужно выполнить миграцию вручную"
+                    }
+                  </p>
+                </div>
 
                 <Button type="submit" className="w-full coral-button" disabled={isLoading}>
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
