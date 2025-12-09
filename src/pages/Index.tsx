@@ -22,8 +22,14 @@ const Index: React.FC = () => {
 
   return (
     <>
-      <BubbleBackground />
-      <div className="container max-w-5xl py-16 text-center">
+      <div className="fixed inset-0 z-0">
+        <img 
+          src="https://cdn.poehali.dev/projects/17336903318390/bucket/anime-cat-bg.jpg"
+          alt="Anime cat background"
+          className="w-full h-full object-cover opacity-30"
+        />
+      </div>
+      <div className="container max-w-5xl py-16 text-center relative z-10">
         <div className="mb-12">
           <h1 className="text-5xl font-bold mb-2 flex items-center justify-center">
             <UnderwaterIcon emoji="🐋" size="lg" delay={1} className="mr-4" />
